@@ -21,3 +21,20 @@ Builds made with craft-fonts (CRAFT_FONTS_DIR; all official releases) also embed
 https://github.com/storytold/craft-fonts/blob/main/ATTRIBUTION.md (today BIZ UDPGothic, Shippori Mincho and
 BIZ UDMincho; not the web build), under the SIL Open Font License 1.1. Their licence texts
 ship with the package as OFL-<family>.txt.
+
+Ubunye Photo distribution
+
+Ubunye Photo (https://github.com/ubunye-ai-ecosystems/ubunye-creative-photo) is a modified
+version of PhotoCraft, made by Ubunye AI Ecosystems and distributed by ThabangVision. It is based
+on PhotoCraft by the ArtCraft team (https://github.com/storytold/photocraft) and stays under the
+same licence: MIT OR Apache-2.0. Modifications are Copyright (c) 2026 Ubunye AI Ecosystems. The
+upstream copyright and notices above are unchanged.
+
+As docs/brand/LICENSE-brand.txt requires for modified versions, Ubunye Photo does not include or
+show the ArtCraft Marks: the logo files in docs/brand/ are removed in this distribution (the licence
+text stays), and Ubunye Photo is not an ArtCraft product. ArtCraft and PhotoCraft are named only in
+plain-text credit.
+
+The Ubunye Photo app icon (assets/app-icon/) is Ubunye AI Ecosystems artwork adapted from the
+ThabangVision logo, MIT OR Apache-2.0; its letter outline comes from DM Serif Display (SIL Open
+Font License 1.1). It replaces upstream's kitsune icon.

@@ -1,13 +1,34 @@
 <p align="center">
-  <a href="https://getartcraft.com/">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/brand/artcraft-logo-white.svg">
-      <img alt="ArtCraft" src="docs/brand/artcraft-logo.svg" width="200">
-    </picture>
-  </a>
+  <img alt="Ubunye Photo" src="assets/app-icon/photocraft.svg" width="96">
 </p>
 
-<h1 align="center">PhotoCraft</h1>
+<h1 align="center">Ubunye Photo</h1>
+
+<p align="center">
+  <b>Ubunye Photo</b> is part of <b>Ubunye Creative Studio</b>, by Ubunye AI Ecosystems, distributed by ThabangVision.<br>
+  Based on PhotoCraft by the ArtCraft team (<a href="https://github.com/storytold/photocraft">github.com/storytold/photocraft</a>), used under MIT OR Apache-2.0.
+</p>
+
+<p align="center">
+  <a href="https://www.thabangvision.com/tools/photo"><b>Product page</b></a> ·
+  <a href="https://github.com/ubunye-ai-ecosystems/ubunye-creative-photo">Source</a> ·
+  <a href="https://github.com/ubunye-ai-ecosystems/ubunye-creative-photo/issues">Report an issue</a>
+</p>
+
+This repository is the Ubunye Photo distribution of PhotoCraft. It changes the name, icon, ids,
+links and installers (see [`ubunye/REBRANDING.md`](ubunye/REBRANDING.md)) and keeps PhotoCraft's
+code, licences and credits ([`NOTICE`](NOTICE), [`ATTRIBUTION.md`](ATTRIBUTION.md)). It is not an
+ArtCraft product and is not endorsed by the ArtCraft team. Please report problems with Ubunye Photo
+on our issue tracker, not upstream's.
+
+The rest of this page is upstream PhotoCraft's README, kept for reference. Where it says PhotoCraft
+it describes the upstream project; its links point upstream.
+
+<!-- ubunye: upstream README below -->
+
+---
+
+<h2 align="center">PhotoCraft (upstream README)</h2>
 
 <p align="center">
   <b>Image editing; an open-source, clean-room reimplementation of Adobe Photoshop, rebuilt in pure Rust.</b><br>
@@ -424,8 +445,7 @@ Forks and modified versions must remove them.
 <sub>Adobe, Photoshop, Illustrator, Premiere Pro, Lightroom, Acrobat, After Effects and InDesign are trademarks or registered trademarks of Adobe Inc. in the United States and/or other countries. PhotoCraft is an independent, open-source project and is not affiliated with, sponsored by or endorsed by Adobe Inc.; these names are used only to describe the workflows it is compatible with.</sub>
 
 <p align="center">
-  <a href="https://getartcraft.com/"><img alt="ArtCraft" src="docs/brand/artcraft-mark.svg" width="28"></a><br>
-  <sub>Made by the <a href="https://getartcraft.com/">ArtCraft</a> team and community.</sub>
+  <sub>PhotoCraft is made by the ArtCraft team and community.</sub>
 </p>
 
 ## Star history
