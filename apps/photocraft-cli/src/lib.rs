@@ -11,7 +11,7 @@ use photocraft_io::ExportOptions;
 use serde_json::{Value, json};
 
 pub const USAGE: &str = "\
-photocraft-cli: headless Photocraft
+photocraft-cli: headless Ubunye Photo (based on PhotoCraft)
 
 USAGE:
   photocraft-cli convert <in> <out> [--format <ext>] [--quality <1-100>] [--tiff-layers]
@@ -154,7 +154,7 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> i32 {
             return 0;
         }
         "--version" | "version" => {
-            let _ = writeln!(out, "photocraft-cli {}", photocraft_engine::build_info::long_version());
+            let _ = writeln!(out, "photocraft-cli {} (Ubunye Photo, based on PhotoCraft)", photocraft_engine::build_info::long_version());
             return 0;
         }
         _ => {}

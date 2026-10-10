@@ -696,11 +696,11 @@
 	Timeline	Tijdlijn
 	Tool Presets	Gereedschapsvoorinstellingen
 	Tools	Gereedschappen
-	About PhotoCraft	Over PhotoCraft
-	PhotoCraft Website	Website van PhotoCraft
-	PhotoCraft on GitHub	PhotoCraft op GitHub
-	ArtCraft Website	Website van ArtCraft
-	Join the ArtCraft Discord…	Deelnemen aan de ArtCraft-Discord…
+	About Ubunye Photo	Over Ubunye Photo
+	Ubunye Photo Website	Website van Ubunye Photo
+	Ubunye Photo on GitHub	Ubunye Photo op GitHub
+	Upstream PhotoCraft Project	Oorspronkelijk PhotoCraft-project
+	Join the Community…	Deelnemen aan de community…
 	Report an Issue…	Probleem melden…
 	WIA Support…	WIA-ondersteuning…
 	Apply	Toepassen
@@ -750,7 +750,7 @@
 	All Caps	Alleen hoofdletters
 	All Slices	Alle segmenten
 	All User Slices	Alle gebruikerssegmenten
-	All shortcuts reset to PhotoCraft defaults.	Alle sneltoetsen zijn teruggezet naar de standaardwaarden van PhotoCraft.
+	All shortcuts reset to Ubunye Photo defaults.	Alle sneltoetsen zijn teruggezet naar de standaardwaarden van Ubunye Photo.
 	Alt	Alt
 	Always use pressure for opacity	Altijd druk gebruiken voor dekking
 	Always use pressure for size	Altijd druk gebruiken voor grootte
@@ -970,7 +970,7 @@
 	Diffusion	Diffusie
 	Discard the embedded profile (don't color manage)	Het ingesloten profiel negeren (geen kleurbeheer)
 	Discontiguous	Niet-aaneengesloten
-	Discord	Discord
+	Community	Community
 	Dismiss	Sluiten
 	Display P3	Display P3
 	Display Text	Tekst tonen
@@ -990,8 +990,8 @@
 	Drop an image or PSD anywhere to open it.	Sleep een afbeelding of PSD ergens naartoe om deze te openen.
 	Native file drag-and-drop is unavailable	Bestanden slepen en neerzetten is niet beschikbaar
 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Bestanden slepen en neerzetten wordt nog niet ondersteund onder Wayland. Gebruik Bestand › Openen, of kopieer de afbeelding in je bestandsbeheerder en plak deze met {paste}.
-	To drop files, start PhotoCraft under XWayland: `{command}`	Start PhotoCraft onder XWayland om bestanden neer te zetten: `{command}`
-	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	Of zet Voorkeuren › Prestaties › Linux-weergaveserver op X11: PhotoCraft start dan altijd onder XWayland.
+	To drop files, start Ubunye Photo under XWayland: `{command}`	Start Ubunye Photo onder XWayland om bestanden neer te zetten: `{command}`
+	Or set Preferences › Performance › Linux display server to X11: Ubunye Photo then always starts under XWayland.	Of zet Voorkeuren › Prestaties › Linux-weergaveserver op X11: Ubunye Photo start dan altijd onder XWayland.
 	Edit › Paste	Bewerken › Plakken
 	Duplicate Layers…	Lagen dupliceren…
 	Duplicate style	Stijl dupliceren
@@ -1102,7 +1102,7 @@
 	Invert All	Alles omkeren
 	Invert has no settings.	Omkeren heeft geen instellingen.
 	Italic	Cursief
-	Join us on Discord	Doe mee op Discord
+	Join the Community	Doe mee met de community
 	Justify all	Alles uitvullen
 	Justify last centered	Uitvullen, laatste regel gecentreerd
 	Justify last left	Uitvullen, laatste regel links
@@ -1237,9 +1237,9 @@
 	Perspective Warp is not active	Perspectiefvervorming is niet actief
 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	Perspectiefvervorming: teken vlakken langs het perspectief van de afbeelding en schakel daarna naar Verbuigen
 	Photo Filter	Fotofilter
-	PhotoCraft	PhotoCraft
-	PhotoCraft Manages Colors	PhotoCraft beheert kleuren
-	PhotoCraft — an open-source, native image editor written in Rust.	PhotoCraft — een opensource, native afbeeldingseditor geschreven in Rust.
+	Ubunye Photo	Ubunye Photo
+	Ubunye Photo Manages Colors	Ubunye Photo beheert kleuren
+	Ubunye Photo — an open-source, native image editor written in Rust.	Ubunye Photo — een opensource, native afbeeldingseditor geschreven in Rust.
 	Pin Depth:	Speldiepte:
 	Pixel Length:	Pixellengte:
 	Pixels/Centimeter	Pixels/centimeter
@@ -1313,11 +1313,11 @@
 	Import Shortcuts…	Sneltoetsen importeren…
 	Load a keyboard shortcut set saved as .kys	Een als .kys opgeslagen sneltoetsenset laden
 	Imported {n} shortcuts from {file}. Click OK to keep them.	{n} sneltoetsen geïmporteerd uit {file}. Klik op OK om ze te behouden.
-	{n} commands are not in PhotoCraft.	{n} opdrachten bestaan niet in PhotoCraft.
+	{n} commands are not in Ubunye Photo.	{n} opdrachten bestaan niet in Ubunye Photo.
 	Keyboard shortcuts imported	Sneltoetsen geïmporteerd
 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	Je sneltoetsenset {set} wordt hier gebruikt: {n} sneltoetsen wijken af van de standaardwaarden. Bewerken › Sneltoetsen toont ze; Alles terugzetten naar standaard maakt dit ongedaan.
 	Import keyboard shortcuts?	Sneltoetsen importeren?
-	PhotoCraft found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from PhotoCraft's. Import it?	PhotoCraft heeft op deze computer je sneltoetsenset {set} van een andere beeldbewerker gevonden: {n} van de sneltoetsen wijken af van die van PhotoCraft. Importeren?
+	Ubunye Photo found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from Ubunye Photo's. Import it?	Ubunye Photo heeft op deze computer je sneltoetsenset {set} van een andere beeldbewerker gevonden: {n} van de sneltoetsen wijken af van die van Ubunye Photo. Importeren?
 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	Bewerken › Sneltoetsen › Alles terugzetten naar standaard maakt een import ongedaan.
 	Don't Import	Niet importeren
 	The keyboard shortcut set was not imported: {error}	De sneltoetsenset is niet geïmporteerd: {error}
@@ -1501,7 +1501,6 @@
 	Apple Watch 45mm	Apple Watch 45 mm
 	Aqua	Aqua
 	Art & Illustration	Kunst en illustratie
-	ArtCraft	ArtCraft
 	Background Eraser Tool	Achtergrondgumgereedschap
 	Bevel & Emboss	Schuine kant en reliëf
 	Blend Mode	Overvloeimodus
@@ -1536,7 +1535,7 @@
 	Current Tool	Huidig gereedschap
 	Custom Shape Tool	Gereedschap Aangepaste vorm
 	Cyans	Cyaantinten
-	Default PhotoCraft Size	Standaardgrootte PhotoCraft
+	Default Ubunye Photo Size	Standaardgrootte Ubunye Photo
 	Delete Workspace	Werkruimte verwijderen
 	Diamond	Ruit
 	Dimensions:	Afmetingen:
@@ -1637,7 +1636,7 @@
 	Pen Tilt	Penkanteling
 	Pen Tool	Pengereedschap
 	Photo	Foto
-	PhotoCraft website	Website van PhotoCraft
+	Ubunye Photo website	Website van Ubunye Photo
 	Picas	Pica's
 	Pillow Emboss	Kussenreliëf
 	Pixel Replacement	Pixelvervanging
@@ -1955,7 +1954,7 @@
 	System Info	Systeeminformatie
 	More panels	Meer panelen
 	More documents	Meer documenten
-	These settings aren't available in PhotoCraft yet.	Deze instellingen zijn nog niet beschikbaar in PhotoCraft.
+	These settings aren't available in Ubunye Photo yet.	Deze instellingen zijn nog niet beschikbaar in Ubunye Photo.
 	Graphics	Grafisch
 	Reset GPU Backend	GPU-backend herstellen
 	Applies at next launch.	Wordt toegepast bij de volgende start.
@@ -2143,7 +2142,7 @@
 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	Automatisch gebruikt GPU-versnelling indien beschikbaar en valt bij fouten terug op CPU-rendering.
 	Switched to CPU rendering	Overgeschakeld naar CPU-rendering
 	GPU acceleration could not continue. Your documents are unchanged.	GPU-versnelling kon niet doorgaan. Je documenten zijn ongewijzigd.
-	PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter.	PhotoCraft gebruikt de CPU-beeldcompositor. Het venster kan nog steeds je grafische adapter gebruiken.
+	Ubunye Photo is using the CPU image compositor. The window may still use your graphics adapter.	Ubunye Photo gebruikt de CPU-beeldcompositor. Het venster kan nog steeds je grafische adapter gebruiken.
 	Retry GPU requires a restart. Save your work first.	GPU opnieuw proberen vereist een herstart. Sla eerst je werk op.
 	Keep Using CPU	CPU blijven gebruiken
 	Retry GPU	GPU opnieuw proberen
@@ -2502,7 +2501,7 @@ cameraRaw	Color	Kleur
 	Restart Required	Herstart vereist
 	Restart	Opnieuw starten
 	Quit	Afsluiten
-	Quit PhotoCraft	PhotoCraft afsluiten
+	Quit Ubunye Photo	Ubunye Photo afsluiten
 	Close Window	Venster sluiten
 	New Window	Nieuw venster
 	Open Image	Afbeelding openen
@@ -2886,7 +2885,6 @@ cameraRaw	Color	Kleur
 	Custom Pixel Aspect Ratio	Aangepaste pixelverhouding
 	32-bit Preview Options	Voorvertoningsopties 32-bit
 	New Guide	Nieuwe hulplijn
-	Join the ArtCraft Discord	Deelnemen aan de ArtCraft-Discord
 	Report an Issue	Probleem melden
 	Load Files into Stack	Bestanden in stapel laden
 	Statistics	Statistieken
@@ -3272,7 +3270,7 @@ cameraRaw	Color	Kleur
 	Modify Date	Wijzigingsdatum
 	Mosaic	Mozaïek
 	Motion Blur	Bewegingsonscherpte
-	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or run PhotoCraft under XWayland with `WAYLAND_DISPLAY= photocraft`.	Bestanden slepen en neerzetten wordt nog niet ondersteund onder Wayland. Gebruik Bestand › Openen, of start PhotoCraft onder XWayland met `WAYLAND_DISPLAY= photocraft`.
+	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or run Ubunye Photo under XWayland with `WAYLAND_DISPLAY= photocraft`.	Bestanden slepen en neerzetten wordt nog niet ondersteund onder Wayland. Gebruik Bestand › Openen, of start Ubunye Photo onder XWayland met `WAYLAND_DISPLAY= photocraft`.
 	Neon Glow	Neongloed
 	New Guide Layout	Nieuwe hulplijnindeling
 	New Path	Nieuw pad
@@ -3585,3 +3583,6 @@ cameraRaw	Whites	Witten
 	Quick Selection found nothing there	Snelle selectie heeft daar niets gevonden
 	Object Selection found nothing there — try a tighter rectangle	Objectselectie heeft daar niets gevonden — probeer een krappere rechthoek
 	No subject found — try a rectangle around the object	Geen onderwerp gevonden — probeer een rechthoek rond het object
+	Based on PhotoCraft by the ArtCraft team	Gebaseerd op PhotoCraft van het ArtCraft-team
+	License: MIT OR Apache-2.0	Licentie: MIT OR Apache-2.0
+	{name}, part of {suite}.	{name}, onderdeel van {suite}.

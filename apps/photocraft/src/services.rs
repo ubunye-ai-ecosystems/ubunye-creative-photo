@@ -41,7 +41,7 @@ fn open_filter_extensions(extensions: &[&str]) -> Vec<String> {
 fn open_filters() -> Vec<(&'static str, Vec<String>)> {
     vec![
         ("All Formats", open_filter_extensions(OPEN_EXTS)),
-        ("PhotoCraft", open_filter_extensions(&["pcraft"])),
+        ("Ubunye Photo", open_filter_extensions(&["pcraft"])),
         ("OpenRaster", open_filter_extensions(&["ora"])),
         ("SVG", open_filter_extensions(SVG_EXTS)),
     ]
@@ -52,7 +52,7 @@ fn open_filters() -> Vec<(&'static str, Vec<String>)> {
 /// keeps defaulting to PSD.
 const SAVE_FILTERS: &[(&str, &[&str])] = &[
     ("PSD Document", &["psd", "psb"]),
-    ("PhotoCraft", &["pcraft"]),
+    ("Ubunye Photo", &["pcraft"]),
     ("OpenRaster", &["ora"]),
     ("PNG", &["png"]),
     ("JPEG", &["jpg"]),
@@ -158,7 +158,7 @@ fn block_on<T>(future: impl Future<Output = T>) -> T {
     }
 }
 
-/// Per-user settings directory: `PHOTOCRAFT_CONFIG_DIR`, else `<exe dir>/PhotoCraftData` in
+/// Per-user settings directory: `PHOTOCRAFT_CONFIG_DIR`, else `<exe dir>/UbunyeCreativePhotoData` in
 /// portable mode, else the platform convention. Everything the app persists lives under it; see
 /// [`crate::app_dirs`].
 pub fn config_dir() -> Option<PathBuf> {
@@ -506,8 +506,8 @@ mod tests {
     #[test]
     fn xwayland_command_matches_how_photocraft_was_installed() {
         // Flatpak: WAYLAND_DISPLAY doesn't reach the sandbox's socket choice; flatpak's flags do.
-        let flatpak = xwayland_command(Some("ai.storyteller.photocraft"), None, false);
-        assert_eq!(flatpak.as_deref(), Some("flatpak run --nosocket=wayland --socket=x11 ai.storyteller.photocraft"));
+        let flatpak = xwayland_command(Some("org.ubunye.creative.photo"), None, false);
+        assert_eq!(flatpak.as_deref(), Some("flatpak run --nosocket=wayland --socket=x11 org.ubunye.creative.photo"));
         // AppImage: its own path, quoted for the shell (spaces, quotes).
         let appimage = xwayland_command(None, Some("/home/me/My Apps/it's.AppImage"), true);
         assert_eq!(appimage.as_deref(), Some(r"WAYLAND_DISPLAY= '/home/me/My Apps/it'\''s.AppImage'"));
