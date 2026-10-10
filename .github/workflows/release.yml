@@ -233,12 +233,12 @@ jobs:
           dpkg-deb --info dist/release/*.deb
           dpkg-deb --contents dist/release/*.deb | grep -E 'usr/bin/photocraft$|metainfo|applications'
           ldd target/release/photocraft
-          python3 -c "import yaml; m = yaml.safe_load(open('packaging/linux/flatpak/ai.storyteller.photocraft.yml')); assert m['id'] == 'ai.storyteller.photocraft'"
+          python3 -c "import yaml; m = yaml.safe_load(open('packaging/linux/flatpak/org.ubunye.creative.photo.yml')); assert m['id'] == 'org.ubunye.creative.photo'"
           for appimage in dist/release/*.AppImage; do
             chmod +x "$appimage"
             APPIMAGE_EXTRACT_AND_RUN=1 "$appimage" --version
             # Update information (#349) is embedded, and the .zsync for delta updates sits beside it.
-            "$appimage" --appimage-updateinformation | grep -F 'gh-releases-zsync|'
+            "$appimage" --appimage-updateinformation | grep -F 'zsync|https://downloads.thabangvision.com/photo/stable/'
             test -s "$appimage.zsync"
           done
       - uses: actions/upload-artifact@v4
@@ -330,7 +330,7 @@ jobs:
             export CRAFT_FONTS_DIR="$PWD/craft-fonts" CRAFT_FONTS_REQUIRED=1
             bash packaging/freebsd/package.sh
             tar -tzf dist/release/photocraft-*-freebsd-x86_64.tar.gz \
-              | grep -E '/bin/photocraft$|/bin/photocraft-cli$|/share/applications/ai\.storyteller\.photocraft\.desktop$|/share/doc/photocraft/LICENSE-MIT$'
+              | grep -E '/bin/photocraft$|/bin/photocraft-cli$|/share/applications/org\.ubunye\.creative\.photo\.desktop$|/share/doc/photocraft/LICENSE-MIT$'
       - uses: actions/upload-artifact@v4
         with:
           name: release-freebsd-x86_64
