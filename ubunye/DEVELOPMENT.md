@@ -1,4 +1,4 @@
-# Developing Ubunye Creative Photo
+# Developing Ubunye Photo
 
 ## Toolchain
 `rust-toolchain.toml` pins Rust 1.97.0 (upstream MSRV is 1.95). rustup installs it automatically.
