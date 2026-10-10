@@ -1,27 +1,35 @@
-# Ubunye identity for Ubunye Creative Photo. Single source of truth for Milestone 4 (branding).
-# Values are not wired into the build yet; branding changes start only after brand-kit approval.
+# Ubunye identity for Ubunye Photo (repo ubunye-creative-photo). Single source of truth for the brand layer:
+# ubunye/brand/apply.py reads it, and crates/ui-egui/src/ubunye.rs must match it (apply.py --check).
 [product]
-name = "Ubunye Creative Photo"
+name = "Ubunye Photo"
 short_name = "Photo"
 slug = "ubunye-creative-photo"
 suite = "Ubunye Creative Studio"
 vendor = "Ubunye AI Ecosystems"
 description = "Layered image editing"
 based_on = "Based on PhotoCraft by the ArtCraft team (https://github.com/storytold/photocraft), used under MIT OR Apache-2.0."
+# Debian/RPM maintainer address. Placeholder until the owner confirms a real mailbox.
+maintainer_email = "maintainers@thabangvision.com"
 
 [identifiers]
 app_id = "org.ubunye.creative.photo"                         # macOS bundle id, Linux app id, Flatpak id
 document_uti = "org.ubunye.creative.photo.document"
-windows_upgrade_code = "B5F26DFD-A4A7-4D46-8DDF-79537F0A829B"         # generated for Ubunye; never reuse upstream's GUID
-env_prefix = "UBUNYE_PHOTO"                    # replaces upstream's PHOTOCRAFT_* variables
-config_dir = "ubunye-creative-photo"
+windows_upgrade_code = "B5F26DFD-A4A7-4D46-8DDF-79537F0A829B"         # from studio-tools brand/identities.toml; never reuse upstream's GUID
+windows_main_component_guid = "BE899921-351E-4A2D-AB58-1758C5DCB870"  # MSI component of photocraft.exe; generated for Ubunye
+mime_type = "application/x-ubunye-creative-photo"            # .pcraft documents (extension and format unchanged)
+progid_prefix = "UbunyeCreativePhoto"                        # Windows ProgIDs: UbunyeCreativePhoto.Document, .Image, ...
+portable_data_dir = "UbunyeCreativePhotoData"                # portable-mode data folder beside the exe
+env_prefix = "PHOTOCRAFT"                    # kept: upstream's PHOTOCRAFT_* variables (merge cost); rename later if ever needed
+config_dir = "org.ubunye.creative.photo"     # per-user settings folder name on every platform
 
 [links]
-homepage = "https://thabangvision.com/studio/photo"
+homepage = "https://www.thabangvision.com/tools/photo"
 downloads = "https://downloads.thabangvision.com/photo/"
+appimage_updates = "https://downloads.thabangvision.com/photo/stable/"
 web_app = "https://photo.studio.thabangvision.com/"
 source = "https://github.com/ubunye-ai-ecosystems/ubunye-creative-photo"
 issues = "https://github.com/ubunye-ai-ecosystems/ubunye-creative-photo/issues"
+community = "https://github.com/ubunye-ai-ecosystems/ubunye-creative-photo/discussions"
 update_manifest = "https://downloads.thabangvision.com/manifests/photo/stable.json"
 
 [upstream_identity_to_replace]
