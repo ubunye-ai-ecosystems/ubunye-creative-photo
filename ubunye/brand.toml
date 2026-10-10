@@ -1,0 +1,31 @@
+# Ubunye identity for Ubunye Creative Photo. Single source of truth for Milestone 4 (branding).
+# Values are not wired into the build yet; branding changes start only after brand-kit approval.
+[product]
+name = "Ubunye Creative Photo"
+short_name = "Photo"
+slug = "ubunye-creative-photo"
+suite = "Ubunye Creative Studio"
+vendor = "Ubunye AI Ecosystems"
+description = "Layered image editing"
+based_on = "Based on PhotoCraft by the ArtCraft team (https://github.com/storytold/photocraft), used under MIT OR Apache-2.0."
+
+[identifiers]
+app_id = "org.ubunye.creative.photo"                         # macOS bundle id, Linux app id, Flatpak id
+document_uti = "org.ubunye.creative.photo.document"
+windows_upgrade_code = "B5F26DFD-A4A7-4D46-8DDF-79537F0A829B"         # generated for Ubunye; never reuse upstream's GUID
+env_prefix = "UBUNYE_PHOTO"                    # replaces upstream's PHOTOCRAFT_* variables
+config_dir = "ubunye-creative-photo"
+
+[links]
+homepage = "https://thabangvision.com/studio/photo"
+downloads = "https://downloads.thabangvision.com/photo/"
+web_app = "https://photo.studio.thabangvision.com/"
+source = "https://github.com/ubunye-ai-ecosystems/ubunye-creative-photo"
+issues = "https://github.com/ubunye-ai-ecosystems/ubunye-creative-photo/issues"
+update_manifest = "https://downloads.thabangvision.com/manifests/photo/stable.json"
+
+[upstream_identity_to_replace]
+names = ["PhotoCraft", "ArtCraft"]
+app_id = "ai.storyteller.photocraft"
+vendor = "Learning Machines LLC"
+links = ["getartcraft.com", "discord.gg/artcraft", "github.com/storytold/photocraft"]
