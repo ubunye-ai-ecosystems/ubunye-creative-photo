@@ -1,4 +1,4 @@
-# Security policy: Ubunye Creative Photo
+# Security policy: Ubunye Photo
 
 ## Reporting
 Please **do not** open public issues for vulnerabilities. Use GitHub's private reporting ("Security" → "Report a vulnerability") on `ubunye-ai-ecosystems/ubunye-creative-photo`. We acknowledge within 5 working days.

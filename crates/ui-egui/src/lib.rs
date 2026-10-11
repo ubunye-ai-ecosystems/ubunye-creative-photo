@@ -162,6 +162,8 @@ pub mod transform_tool;
 pub mod type_panels_ui;
 pub mod type_tool;
 mod type_transform;
+/// Ubunye Photo identity (Ubunye fork; see ubunye/REBRANDING.md).
+pub mod ubunye;
 mod variables_ui;
 pub mod vector_ui;
 pub mod view_cmds;

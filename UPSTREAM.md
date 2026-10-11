@@ -1,6 +1,6 @@
 # Upstream
 
-Ubunye Creative Photo (`ubunye-creative-photo`) is a downstream distribution of **PhotoCraft** by the ArtCraft team and the PhotoCraft contributors: https://github.com/storytold/photocraft.
+Ubunye Photo (`ubunye-creative-photo`) is a downstream distribution of **PhotoCraft** by the ArtCraft team and the PhotoCraft contributors: https://github.com/storytold/photocraft.
 It is used under MIT OR Apache-2.0. The upstream LICENSE, NOTICE and ATTRIBUTION files in this repository are kept unchanged.
 
 ## Remotes

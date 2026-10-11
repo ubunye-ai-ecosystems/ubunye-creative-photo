@@ -1,6 +1,6 @@
-# Ubunye Creative Photo: architecture (Ubunye view)
+# Ubunye Photo: architecture (Ubunye view)
 
-Ubunye Creative Photo is PhotoCraft at the upstream revision in `../UPSTREAM_STATE.json`, plus the Ubunye patch set in `patched-paths.txt`. For the upstream design, read upstream's own `docs/` and `AGENTS.md`. This file covers only what Ubunye adds and how it fits on top.
+Ubunye Photo is PhotoCraft at the upstream revision in `../UPSTREAM_STATE.json`, plus the Ubunye patch set in `patched-paths.txt`. For the upstream design, read upstream's own `docs/` and `AGENTS.md`. This file covers only what Ubunye adds and how it fits on top.
 
 Full due-diligence report: `ubunye-creative-studio-tools/research/photocraft.md`.
 
