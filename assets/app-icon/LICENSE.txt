@@ -1,7 +1,7 @@
 Ubunye Photo app icon (photocraft.svg, photocraft-small.svg and every file derived from them in
 this directory: photocraft-1024.png, photocraft.icns, photocraft.ico, hicolor/).
 
-Ubunye AI Ecosystems artwork adapted from the ThabangVision logo, MIT OR Apache-2.0; letter outline from
+Ubunye AI Ecosystems artwork from the Ubunye Creative Studio brand system, MIT OR Apache-2.0; letter outline from
 DM Serif Display (SIL OFL 1.1).
 
 Licensed under either of

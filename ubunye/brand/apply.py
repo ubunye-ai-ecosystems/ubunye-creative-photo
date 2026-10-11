@@ -42,6 +42,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 BRAND_TOML = ROOT / "ubunye" / "brand.toml"
 ICON_SRC = ROOT / "ubunye" / "brand" / "assets" / "icon.svg"
+# Simplified icon (fewer, thicker rays, no glow) used at 32 px and below.
+ICON_SMALL = ROOT / "ubunye" / "brand" / "assets" / "icon-small.svg"
 ICON_STAMP = ROOT / "ubunye" / "brand" / "icon.sha256"
 APP_ICON_DIR = ROOT / "assets" / "app-icon"
 
@@ -418,7 +420,7 @@ ARTCRAFT_MARKS = sorted((ROOT / "docs" / "brand").glob("artcraft-*"))
 ICON_LICENSE = f"""{NAME} app icon (photocraft.svg, photocraft-small.svg and every file derived from them in
 this directory: photocraft-1024.png, photocraft.icns, photocraft.ico, hicolor/).
 
-{VENDOR} artwork adapted from the ThabangVision logo, MIT OR Apache-2.0; letter outline from
+{VENDOR} artwork from the Ubunye Creative Studio brand system, MIT OR Apache-2.0; letter outline from
 DM Serif Display (SIL OFL 1.1).
 
 Licensed under either of
@@ -434,7 +436,7 @@ python -I ubunye/brand/apply.py --icons (or packaging/icons.sh).
 
 ICON_README = f"""# {NAME} app icon
 
-{VENDOR} artwork adapted from the ThabangVision logo; the letters are an outline from DM Serif
+{VENDOR} artwork from the Ubunye Creative Studio brand system; the letters are an outline from DM Serif
 Display (SIL OFL 1.1), so rendering needs no font. Licence: see `LICENSE.txt`.
 
 This replaces upstream PhotoCraft's kitsune icon. The master lives at
@@ -442,13 +444,13 @@ This replaces upstream PhotoCraft's kitsune icon. The master lives at
 
 ## Geometry
 
-A 512-unit tile (`viewBox="0 0 512 512"`), rounded square with `rx=112`. The macOS render pads it
-onto Apple's 824/1024 icon grid; the Windows and Linux renders crop 22 units off each side so the
-art reads at 16 to 48 px (the same recipe as `packaging/icons.sh`).
+A 512-unit tile (`viewBox="0 0 512 512"`), with its margin built in. The macOS render pads it
+onto Apple's 824/1024 icon grid; Windows and Linux use it as is, and 32 px and below use
+`icon-small.svg` (fewer, thicker rays, no glow) so the art reads at small sizes.
 
 ## Files
 
-- `photocraft.svg`: copy of the master. `photocraft-small.svg`: the same art (the hicolor scalable icon).
+- `photocraft.svg`: copy of the master. `photocraft-small.svg`: copy of `icon-small.svg`, the 32 px and below art.
 - `photocraft-1024.png`: 1024 px render on the macOS grid.
 - `photocraft.icns`: macOS bundle icon (`CFBundleIconFile`).
 - `photocraft.ico`: Windows icon, 16 to 256 px, embedded in the `.exe` by `apps/photocraft/build.rs`.
@@ -472,7 +474,11 @@ def find_resvg() -> str | None:
 
 def icon_hash() -> str:
     # Line endings normalised, so the stamp matches on Windows (autocrlf) and Linux checkouts.
-    return hashlib.sha256(ICON_SRC.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+    h = hashlib.sha256()
+    for f in (ICON_SRC, ICON_SMALL):
+        if f.exists():
+            h.update(f.read_bytes().replace(b"\r\n", b"\n"))
+    return h.hexdigest()
 
 
 def render_icons(log: list[str]) -> None:
@@ -486,8 +492,9 @@ def render_icons(log: list[str]) -> None:
         t = Path(tmp)
         mac = t / "mac.svg"
         mac.write_text(svg.replace('viewBox="0 0 512 512"', 'viewBox="-62 -62 636 636"', 1), encoding="utf-8")
-        tight = t / "tight.svg"
-        tight.write_text(svg.replace('viewBox="0 0 512 512"', 'viewBox="22 22 468 468"', 1), encoding="utf-8")
+        # The brand-system art already carries its margin, so Windows and Linux render it as is.
+        full = ICON_SRC
+        small = ICON_SMALL if ICON_SMALL.exists() else ICON_SRC
 
         def render(src: Path, size: int, out: Path) -> bytes:
             out.parent.mkdir(parents=True, exist_ok=True)
@@ -495,14 +502,14 @@ def render_icons(log: list[str]) -> None:
             return out.read_bytes()
 
         shutil.copyfile(ICON_SRC, APP_ICON_DIR / "photocraft.svg")
-        shutil.copyfile(ICON_SRC, APP_ICON_DIR / "photocraft-small.svg")
+        shutil.copyfile(small, APP_ICON_DIR / "photocraft-small.svg")
         render(mac, 1024, APP_ICON_DIR / "photocraft-1024.png")
         for s in HICOLOR:
-            render(tight, s, APP_ICON_DIR / "hicolor" / f"{s}x{s}" / "apps" / f"{APP_ID}.png")
+            render(small if s <= 32 else full, s, APP_ICON_DIR / "hicolor" / f"{s}x{s}" / "apps" / f"{APP_ID}.png")
         scalable = APP_ICON_DIR / "hicolor" / "scalable" / "apps" / f"{APP_ID}.svg"
         scalable.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ICON_SRC, scalable)
-        ico = [(s, render(tight, s, t / f"ico-{s}.png")) for s in ICO_SIZES]
+        ico = [(s, render(small if s <= 32 else full, s, t / f"ico-{s}.png")) for s in ICO_SIZES]
         (APP_ICON_DIR / "photocraft.ico").write_bytes(pack_ico(ico))
         icns = [(code, render(mac, s, t / f"icns-{code.decode()}.png")) for code, s in ICNS_TYPES]
         (APP_ICON_DIR / "photocraft.icns").write_bytes(pack_icns(icns))
