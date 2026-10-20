@@ -37,6 +37,8 @@ flate2 = { workspace = true }
 # Photoshop `.kys` shortcut sets (`edit.keyboardShortcuts` `importKys`); already in the tree
 # through photocraft-ui-egui and usvg.
 roxmltree = "0.20"
+# Kopano sync objects travel as base64 (Ubunye fork); already in the tree via photocraft-automation.
+base64 = "0.22"
 
 [dev-dependencies]
 photocraft-affinity = { workspace = true, features = ["synth"] }

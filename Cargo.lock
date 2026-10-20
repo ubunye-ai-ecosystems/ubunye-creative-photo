@@ -4338,6 +4338,7 @@ dependencies = [
 name = "photocraft-engine"
 version = "0.6.0"
 dependencies = [
+ "base64",
  "blake3",
  "flate2",
  "photocraft-affinity",

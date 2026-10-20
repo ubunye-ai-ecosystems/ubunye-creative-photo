@@ -109,3 +109,7 @@ packaging/windows/photocraft.wxs
 packaging/windows/portable.txt
 README.md
 SECURITY.md
+crates/engine/Cargo.toml
+crates/engine/src/commands.rs
+crates/engine/src/lib.rs
+Cargo.lock
