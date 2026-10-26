@@ -205,6 +205,13 @@ struct FakeData {
     two_members: AtomicBool,
     approve_member: AtomicBool,
     live_clash: AtomicBool,
+    /// Not signed in, a sign-in waits in the browser for code BCDF-1234.
+    signing_in: AtomicBool,
+    /// ThabangVision people on the project; this side is its owner unless `member_role`.
+    people: AtomicBool,
+    member_role: AtomicBool,
+    /// "Shared with me" lists one document that is not on this computer.
+    shared_rows: AtomicBool,
 }
 
 struct Fake {
@@ -298,8 +305,38 @@ fn serve(c: TcpStream, got: &Mutex<Vec<Value>>, stop: &AtomicBool, data: &FakeDa
                 }
                 return;
             }
-            "hello" => json!({"device": ALICE, "name": "Alice", "account": "acct-alice", "signed_in": !data.signed_out.load(Ordering::SeqCst),
-                "signed_in_until_ms": 1.8e12, "projects": [{"id": PID, "name": "Portrait", "app": app(app_port)}]}),
+            "hello" => {
+                let waiting = data.signing_in.load(Ordering::SeqCst);
+                let out = data.signed_out.load(Ordering::SeqCst) || waiting;
+                json!({"device": ALICE, "name": if out { "" } else { "Alice" }, "account": if out { "" } else { "acct-alice" }, "signed_in": !out,
+                    "signed_in_until_ms": 1.8e12,
+                    "signing_in": if waiting { json!({"code": "BCDF-1234", "link": "http://localhost:3100/link?code=BCDF-1234", "until_ms": 1.8e12}) } else { Value::Null },
+                    "message": if out && !waiting { json!("This computer was unlinked from ThabangVision. Sign in again.") } else { Value::Null },
+                    "projects": if out { json!([]) } else { json!([{"id": PID, "name": "Portrait", "app": app(app_port)}]) }})
+            }
+            "people" if data.people.load(Ordering::SeqCst) => {
+                let owner = !data.member_role.load(Ordering::SeqCst);
+                json!({"shared": "tv-1", "people": [
+                    {"user": "u-alice", "name": "Alice", "role": if owner { "owner" } else { "editor" }, "status": "active", "me": true, "online": true, "on_project": true},
+                    {"user": "u-bongi", "name": "Bongi", "role": if owner { "editor" } else { "owner" }, "status": "active", "me": false, "online": true, "on_project": true},
+                    {"user": "u-sipho", "name": "Sipho", "role": "editor", "status": "invited", "me": false, "online": false, "on_project": false}]})
+            }
+            "people" => json!({"shared": false, "people": []}),
+            "shared-projects" => {
+                let rows = if data.shared_rows.load(Ordering::SeqCst) {
+                    json!([{"shared": "tv-shared-77", "name": "Lindiwe's poster", "project": NEW_PID, "role": "editor", "status": "invited", "here": false}])
+                } else {
+                    json!([])
+                };
+                json!({"mine": [], "shared": rows})
+            }
+            "sign-in" => json!({"code": "BCDF-1234", "link": "http://localhost:3100/link?code=BCDF-1234", "until_ms": 1.8e12}),
+            "sign-in-cancel" => json!("not signing in"),
+            "sign-out" => json!("signed out"),
+            "invite" => json!({"message": "Invite sent."}),
+            "remove-person" => json!({"removed": true}),
+            "leave" => json!({"left": true}),
+            "join-shared" => json!({"project": NEW_PID, "name": "Lindiwe's poster"}),
             "status" => {
                 let mut st = json!({"head": "1234abcd", "name": "Portrait", "app": app(app_port),
                     "teammates": [{"device": M1, "name": "Member1", "account": "acct-m1", "online": true}], "online": {M1: "Member1"},
@@ -634,8 +671,11 @@ fn without_a_sign_in_the_window_offers_one() {
     let mut h = harness(config, true);
     ok(run(&mut h, "kopano.panel", json!({})));
     assert!(shows(&mut h, "Sign in with ThabangVision"), "{}", drawn_text(&h));
+    // nothing else shows until signed in; the service's sentence says why
+    assert!(drawn_text(&h).contains("unlinked from ThabangVision") && !drawn_text(&h).contains("Share this document"), "{}", drawn_text(&h));
     click(&mut h, "button:kopano-signIn");
-    assert!(shows(&mut h, "Sign-in is coming soon."), "{}", drawn_text(&h));
+    wait("the sign-in", T, || fake.requests("sign-in").len() == 1);
+    assert!(shows(&mut h, "Check that the browser shows BCDF-1234."), "{}", drawn_text(&h));
     no_protocol_words(&drawn_text(&h));
 }
 
@@ -1028,4 +1068,97 @@ fn clash_picks_belong_to_one_member() {
     assert!(h.state().kopano.choices.is_empty());
     // a pick without the member is refused
     assert_eq!(run(&mut h, "kopano.choose", json!({"project": PID, "key": "layer/x", "pick": "main"}))["ok"], false);
+}
+
+/// Sign in with ThabangVision: the code to check in the browser, Cancel, and Sign out.
+#[test]
+fn signing_in_shows_the_code_and_can_be_stopped_and_signed_out() {
+    let (fake, config, _home) = fake_service();
+    fake.data.signing_in.store(true, Ordering::SeqCst);
+    let mut h = harness(config, true);
+    ok(run(&mut h, "kopano.panel", json!({})));
+    assert!(shows(&mut h, "Check that the browser shows BCDF-1234"), "{}", drawn_text(&h));
+    assert!(drawn_text(&h).contains("Approve this computer there") && !drawn_text(&h).contains("Shared documents"));
+    click(&mut h, "button:kopano-signInCancel");
+    wait("the cancel", T, || fake.requests("sign-in-cancel").len() == 1);
+    assert!(shows(&mut h, "Sign-in stopped."), "{}", drawn_text(&h));
+    // approved in the browser: signed in, and Sign out is there
+    fake.data.signing_in.store(false, Ordering::SeqCst);
+    assert!(shows(&mut h, "Signed in to ThabangVision as Alice"), "{}", drawn_text(&h));
+    click(&mut h, "button:kopano-signOut");
+    wait("the sign-out", T, || fake.requests("sign-out").len() == 1);
+    assert!(shows(&mut h, "Signed out of ThabangVision on this computer."), "{}", drawn_text(&h));
+    no_protocol_words(&drawn_text(&h));
+}
+
+/// Share by email: the document is made, then each email is invited; the answer is "Invite
+/// sent". Live mode cannot take invites, so it is refused up front in plain words.
+#[test]
+fn share_by_email_invites_each_teammate() {
+    let (fake, config, _home) = fake_service();
+    let mut h = harness(config, true);
+    h.state_mut().kopano.start_control = Some(start_control_counting(Arc::default()));
+    let r = run(&mut h, "kopano.share", json!({"name": "Poster", "email": "bongi@example.com", "mode": "live"}));
+    assert!(r["error"].as_str().unwrap().contains("I approve changes"), "{r}");
+    ok(run(&mut h, "kopano.share", json!({"name": "Poster", "email": "bongi@example.com, sipho@example.com"})));
+    wait("the invites", T, || fake.requests("invite").len() == 2);
+    let made = fake.requests("create-project");
+    assert_eq!(made[0]["members"], json!([]), "emails are invited, not made members");
+    let inv = fake.requests("invite");
+    assert_eq!((inv[0]["project"].as_str(), inv[0]["email"].as_str()), (Some(NEW_PID), Some("bongi@example.com")));
+    assert_eq!(inv[1]["email"], "sipho@example.com");
+    ok(run(&mut h, "kopano.panel", json!({})));
+    assert!(shows(&mut h, "Shared this document. Invite sent."), "{}", drawn_text(&h));
+    assert!(!drawn_text(&h).contains("@example.com"), "no emails on screen: {}", drawn_text(&h));
+}
+
+/// The people on a shared document by name and role (never emails); the owner invites and
+/// takes people off; a member may leave.
+#[test]
+fn people_by_name_with_invite_remove_and_leave() {
+    let (fake, config, _home) = fake_service();
+    fake.data.people.store(true, Ordering::SeqCst);
+    let mut h = harness(config, true);
+    ok(run(&mut h, "kopano.panel", json!({})));
+    assert!(shows(&mut h, "Bongi"), "{}", drawn_text(&h));
+    let p = drawn_text(&h);
+    assert!(p.contains("Sipho") && p.contains("invited") && p.contains("can edit") && !p.contains('@'), "{p}");
+    let tag = short(PID);
+    type_into(&mut h, &format!("kopano:invite-{tag}"), "thandi@example.com");
+    click(&mut h, &format!("button:kopano-invite-{tag}"));
+    wait("the invite", T, || fake.requests("invite").len() == 1);
+    assert_eq!((fake.requests("invite")[0]["project"].as_str(), fake.requests("invite")[0]["email"].as_str()), (Some(PID), Some("thandi@example.com")));
+    assert!(shows(&mut h, "Invite sent."), "{}", drawn_text(&h));
+    assert!(!drawn_text(&h).contains("thandi@example.com"), "the email does not stay on screen");
+    click(&mut h, &format!("button:kopano-remove-{tag}-u-bongi"));
+    wait("the removal", T, || fake.requests("remove-person").len() == 1);
+    assert_eq!(fake.requests("remove-person")[0]["user"], "u-bongi");
+    // a member: no invite or remove, but Leave
+    fake.data.member_role.store(true, Ordering::SeqCst);
+    assert!(step_until(&mut h, |h| h.state().kopano.widgets.contains_key(&format!("button:kopano-leave-{tag}"))));
+    assert!(!h.state().kopano.widgets.contains_key(&format!("button:kopano-invite-{tag}")));
+    click(&mut h, &format!("button:kopano-leave-{tag}"));
+    wait("the leave", T, || fake.requests("leave").len() == 1);
+    assert!(shows(&mut h, "You left the document."), "{}", drawn_text(&h));
+}
+
+/// "Shared with me": Open here brings it into a new document with nothing typed.
+#[test]
+fn shared_with_me_opens_in_a_new_document() {
+    let (fake, config, _home) = fake_service();
+    fake.data.shared_rows.store(true, Ordering::SeqCst);
+    let mut h = harness(config, true);
+    h.state_mut().kopano.start_control = Some(start_control_counting(Arc::default()));
+    let mine = h.state().session.active().unwrap().doc.id.0;
+    ok(run(&mut h, "kopano.panel", json!({})));
+    assert!(shows(&mut h, "Lindiwe's poster"), "{}", drawn_text(&h));
+    click(&mut h, &format!("button:kopano-openShared-{}", short("tv-shared-77")));
+    wait("the open", T, || fake.requests("join-shared").len() == 1);
+    let r = &fake.requests("join-shared")[0];
+    assert_eq!(r["shared"], "tv-shared-77");
+    assert_eq!(r["app"]["kind"], "photo-control");
+    let s = &h.state().session;
+    assert_eq!(s.documents().len(), 2);
+    assert_ne!(s.active().unwrap().doc.id.0, mine, "a new document, the open one kept");
+    assert_eq!(h.state().kopano.pinned, Some(s.active().unwrap().doc.id.0));
 }

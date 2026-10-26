@@ -104,6 +104,8 @@ pub struct KopanoPanel {
     pub offers: BTreeMap<String, (String, u64)>,
     /// Offers the person said "Not now" to.
     pub dismissed: BTreeSet<String>,
+    /// The "Teammate's email" field under each shared document this person owns.
+    pub invite_email: BTreeMap<String, String>,
 }
 
 impl Default for KopanoPanel {
@@ -136,6 +138,7 @@ impl KopanoPanel {
             recorded: BTreeMap::new(),
             offers: BTreeMap::new(),
             dismissed: BTreeSet::new(),
+            invite_email: BTreeMap::new(),
         }
     }
 }
@@ -184,11 +187,30 @@ pub fn command(app: &mut PhotocraftApp, ctx: &egui::Context, id: &str, p: &Value
             Ok(json!({"open": app.kopano.open, "advanced": app.kopano.advanced}))
         }
         "kopano.signIn" => {
-            // ThabangVision sign-in (the device certificate) is not built yet
-            let text = "Sign-in is coming soon.";
-            set_job(app, true, text);
-            Ok(json!({"message": text}))
+            app.kopano.client.request(ctx, "Opening ThabangVision in your browser…", json!({"op": "sign-in"})).map(|()| json!({"started": true}))
         }
+        "kopano.signInCancel" => app.kopano.client.request(ctx, "Stopping…", json!({"op": "sign-in-cancel"})).map(|()| json!({"started": true})),
+        "kopano.signOut" => app.kopano.client.request(ctx, "Signing out…", json!({"op": "sign-out"})).map(|()| json!({"started": true})),
+        "kopano.invite" => {
+            let (project, email) = (text_param(p, "project", ""), text_param(p, "email", ""));
+            let email = if email.is_empty() { app.kopano.invite_email.get(&project).cloned().unwrap_or_default().trim().to_string() } else { email };
+            if !email.contains('@') {
+                return Some(Err("Type the teammate's email address.".to_string()));
+            }
+            let r = app.kopano.client.request(ctx, "Inviting…", json!({"op": "invite", "project": project, "email": email}));
+            if r.is_ok() {
+                app.kopano.invite_email.remove(&project);
+            }
+            r.map(|()| json!({"started": true}))
+        }
+        "kopano.removePerson" => {
+            let req = json!({"op": "remove-person", "project": text_param(p, "project", ""), "user": text_param(p, "user", "")});
+            app.kopano.client.request(ctx, "Taking them off…", req).map(|()| json!({"started": true}))
+        }
+        "kopano.leave" => {
+            app.kopano.client.request(ctx, "Leaving…", json!({"op": "leave", "project": text_param(p, "project", "")})).map(|()| json!({"started": true}))
+        }
+        "kopano.openShared" => open_shared(app, ctx, p),
         "kopano.share" => share(app, ctx, p),
         "kopano.relink" => relink(app, ctx, p, true),
         "kopano.notNow" => relink(app, ctx, p, false),
@@ -257,31 +279,34 @@ pub fn command(app: &mut PhotocraftApp, ctx: &egui::Context, id: &str, p: &Value
 /// fields.
 fn share(app: &mut PhotocraftApp, ctx: &egui::Context, p: &Value) -> Result<Value, String> {
     let name = text_param(p, "name", &app.kopano.share_name);
-    let accounts: Vec<String> = text_param(p, "email", &text_param(p, "account", &app.kopano.share_account))
-        .split([',', ' ', ';'])
-        .map(str::trim)
-        .filter(|a| !a.is_empty())
-        .map(str::to_string)
-        .collect();
+    let typed = text_param(p, "email", &text_param(p, "account", &app.kopano.share_account));
+    let typed: Vec<String> = typed.split([',', ' ', ';']).map(str::trim).filter(|a| !a.is_empty()).map(str::to_string).collect();
+    // emails get an invite through ThabangVision; a bare account id (lab testing) becomes a member
+    let (emails, accounts): (Vec<String>, Vec<String>) = typed.into_iter().partition(|a| a.contains('@'));
     if app.session.active().is_none() {
         return Err("Open the document you want to share first".to_string());
     }
     if name.is_empty() {
         return Err("Give the shared document a name".to_string());
     }
-    if accounts.is_empty() {
+    if accounts.is_empty() && emails.is_empty() {
         return Err("Type your teammate's email, so they can join".to_string());
     }
     let mode = text_param(p, "mode", &app.kopano.share_mode);
     if mode != "live" && mode != "approve" {
         return Err("The way to work is live or approve".to_string());
     }
+    if mode == "live" && !emails.is_empty() {
+        return Err("Inviting by email works with \"I approve changes\". Choose it, then press Share.".to_string());
+    }
     one_per_window(app)?;
     let link = control_link(app, ctx)?;
     let doc = app.session.active().map(|d| d.doc.id.0);
     let members: Vec<Value> = accounts.iter().map(|a| json!({"account": a, "role": "editor", "lanes": []})).collect();
     let req = json!({"op": "create-project", "name": name, "app": kopano::binding(link.port, &link.token_file), "members": members, "mode": mode});
-    app.kopano.client.request(ctx, "Sharing…", req)?;
+    let mut steps = vec![req];
+    steps.extend(emails.iter().map(|e| json!({"op": "invite", "project": "$new", "email": e})));
+    app.kopano.client.request_steps(ctx, "Sharing…", steps)?;
     app.kopano.pinned = doc;
     // the invite is on its way: the teammate's email does not stay on screen
     app.kopano.share_name.clear();
@@ -361,6 +386,23 @@ fn join(app: &mut PhotocraftApp, ctx: &egui::Context, p: &Value) -> Result<Value
     let doc = app.session.active().map(|d| d.doc.id.0);
     let req = json!({"op": "join", "project": project, "from": from, "app": kopano::binding(link.port, &link.token_file)});
     app.kopano.client.request(ctx, "Joining…", req)?;
+    app.kopano.pinned = doc;
+    Ok(json!({"started": true, "controlPort": link.port}))
+}
+
+/// `kopano.openShared {shared}`: open a document from "Shared with me" in a new document of this
+/// window, with nothing typed.
+fn open_shared(app: &mut PhotocraftApp, ctx: &egui::Context, p: &Value) -> Result<Value, String> {
+    let shared = text_param(p, "shared", "");
+    if shared.is_empty() {
+        return Err("Say which shared document to open".to_string());
+    }
+    one_per_window(app)?;
+    let link = control_link(app, ctx)?;
+    app.run("file.new", json!({"name": "Shared document", "width": 800, "height": 600, "background": "white"}))?;
+    let doc = app.session.active().map(|d| d.doc.id.0);
+    let req = json!({"op": "join-shared", "shared": shared, "app": kopano::binding(link.port, &link.token_file)});
+    app.kopano.client.request(ctx, "Opening…", req)?;
     app.kopano.pinned = doc;
     Ok(json!({"started": true, "controlPort": link.port}))
 }
@@ -749,13 +791,36 @@ fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, state: &State) {
                 dot(ui, true);
                 ui.label(RichText::new(format!("{} {}", tr("Signed in to ThabangVision as"), me.name)).font(crate::theme::semibold(12.5)).color(t.text));
             });
-        }
-        // the service runs, but this computer's ThabangVision sign-in is missing or ran out
-        Some(_) => {
-            dim(ui, tr("Work on this document together with your team."));
-            if button(app, ui, "kopano-signIn", "Sign in with ThabangVision", false) {
-                press(app, &ctx, "kopano.signIn");
+            if button(app, ui, "kopano-signOut", "Sign out", false) {
+                press(app, &ctx, "kopano.signOut");
             }
+        }
+        // the service runs, but this computer's ThabangVision sign-in is missing or ran out:
+        // nothing else shows until it is signed in
+        Some(_) => {
+            if let Some(w) = &state.signing_in {
+                ui.label(RichText::new(format!("{} {}", tr("Check that the browser shows"), w.code)).font(crate::theme::semibold(12.5)).color(t.text));
+                dim(ui, tr("Approve this computer there. This window carries on by itself."));
+                let link = w.link.clone();
+                ui.horizontal(|ui| {
+                    if button(app, ui, "kopano-openSignIn", "Open the page again", false) {
+                        ui.ctx().open_url(egui::OpenUrl::new_tab(link));
+                    }
+                    if button(app, ui, "kopano-signInCancel", "Cancel", false) {
+                        press(app, &ctx, "kopano.signInCancel");
+                    }
+                });
+            } else {
+                if let Some(m) = &state.account_message {
+                    ui.add(egui::Label::new(RichText::new(m).color(t.warning).size(11.5)).wrap());
+                }
+                dim(ui, tr("Work on this document together with your team."));
+                if button(app, ui, "kopano-signIn", "Sign in with ThabangVision", false) {
+                    press(app, &ctx, "kopano.signIn");
+                }
+            }
+            job_line(app, ui, state);
+            return;
         }
         None => {
             ui.horizontal(|ui| {
@@ -801,10 +866,12 @@ fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, state: &State) {
                 ui.label(RichText::new(tr("in this window")).color(t.text_dim).size(11.0));
             }
         });
-        if p.teammates.is_empty() {
+        if !p.people.is_empty() {
+            people_section(app, ui, p);
+        } else if p.teammates.is_empty() {
             dim(ui, tr("No teammate has joined yet."));
         }
-        for m in &p.teammates {
+        for m in p.teammates.iter().filter(|_| p.people.is_empty()) {
             ui.horizontal(|ui| {
                 ui.add_space(8.0);
                 let on = m.online && state.running;
@@ -820,6 +887,23 @@ fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, state: &State) {
         }
         if !p.clashes.is_empty() {
             clash_section(app, ui, p);
+        }
+    }
+
+    let waiting: Vec<kopano::SharedRow> = state.shared_with_me.iter().filter(|r| !r.here).cloned().collect();
+    if !waiting.is_empty() {
+        heading(ui, "Shared with me");
+        let busy_here = bound_here(app, state).is_some() || app.kopano.pinned.is_some();
+        for r in waiting {
+            ui.horizontal(|ui| {
+                ui.label(RichText::new(&r.name).color(t.text));
+                if !busy_here && button(app, ui, &format!("kopano-openShared-{}", kopano::short(&r.shared)), "Open here", false) {
+                    press_with(app, &ctx, "kopano.openShared", json!({"shared": r.shared}));
+                }
+            });
+        }
+        if busy_here {
+            dim(ui, tr("This window already holds a shared document. Open a new Photo window to open one of these."));
         }
     }
 
@@ -886,6 +970,12 @@ fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, state: &State) {
     }
     app.kopano.advanced_shown = app.kopano.advanced;
 
+    job_line(app, ui, state);
+}
+
+/// The last request's answer, at the bottom of the window.
+fn job_line(_app: &PhotocraftApp, ui: &mut egui::Ui, state: &State) {
+    let t = Tokens::get(ui.ctx());
     if let Some(job) = &state.job {
         ui.add_space(4.0);
         let color = if job.busy {
@@ -897,6 +987,43 @@ fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, state: &State) {
         };
         let text = if job.ok || job.busy { job.text.clone() } else { kopano::plain(&job.text) };
         ui.add(egui::Label::new(RichText::new(text).color(color).size(11.5)).wrap());
+    }
+}
+
+/// The people on a shared document (names and what they may do, never emails). The owner
+/// invites by email and takes people off; anyone else may leave.
+fn people_section(app: &mut PhotocraftApp, ui: &mut egui::Ui, p: &kopano::Project) {
+    let t = Tokens::get(ui.ctx());
+    let ctx = ui.ctx().clone();
+    let tag = kopano::short(&p.id).to_string();
+    let owner = p.people.iter().any(|x| x.me && x.role == "owner");
+    for x in &p.people {
+        ui.horizontal(|ui| {
+            ui.add_space(8.0);
+            dot(ui, x.online);
+            let who = if x.me { tr("You").to_string() } else { x.name.clone() };
+            ui.label(RichText::new(who).color(t.text));
+            ui.label(RichText::new(tr(x.role_text())).color(t.text_dim).size(11.5));
+            if owner && !x.me && button(app, ui, &format!("kopano-remove-{tag}-{}", kopano::short(&x.user)), "Remove", false) {
+                press_with(app, &ctx, "kopano.removePerson", json!({"project": p.id, "user": x.user}));
+            }
+        });
+    }
+    if owner {
+        let mut email = app.kopano.invite_email.get(&p.id).cloned().unwrap_or_default();
+        let id = format!("kopano:invite-{tag}");
+        ui.horizontal(|ui| {
+            let r = ui.add(egui::TextEdit::singleline(&mut email).id(egui::Id::new(&id)).hint_text(tr("Teammate's email")).desired_width(WIDTH - 90.0));
+            app.kopano.widgets.insert(format!("field:{id}"), rect_of(r.rect));
+            if button(app, ui, &format!("kopano-invite-{tag}"), "Invite", false) {
+                app.kopano.invite_email.insert(p.id.clone(), email.clone());
+                press_with(app, &ctx, "kopano.invite", json!({"project": p.id}));
+                return;
+            }
+            app.kopano.invite_email.insert(p.id.clone(), email);
+        });
+    } else if button(app, ui, &format!("kopano-leave-{tag}"), "Leave this document", false) {
+        press_with(app, &ctx, "kopano.leave", json!({"project": p.id}));
     }
 }
 
