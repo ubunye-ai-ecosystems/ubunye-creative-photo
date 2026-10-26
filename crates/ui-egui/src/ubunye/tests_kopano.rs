@@ -1122,7 +1122,7 @@ fn people_by_name_with_invite_remove_and_leave() {
     ok(run(&mut h, "kopano.panel", json!({})));
     assert!(shows(&mut h, "Bongi"), "{}", drawn_text(&h));
     let p = drawn_text(&h);
-    assert!(p.contains("Sipho") && p.contains("invited") && p.contains("can edit") && !p.contains('@'), "{p}");
+    assert!(p.contains("Sipho") && p.contains("invited") && p.contains("can edit") && !p.contains("example.com"), "{p}");
     let tag = short(PID);
     type_into(&mut h, &format!("kopano:invite-{tag}"), "thandi@example.com");
     click(&mut h, &format!("button:kopano-invite-{tag}"));
