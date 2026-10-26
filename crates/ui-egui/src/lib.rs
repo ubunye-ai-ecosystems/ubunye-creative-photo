@@ -422,6 +422,8 @@ pub struct PhotocraftApp {
     /// The first digit of a two-digit opacity typed on the number keys (`opacity_keys`, #352).
     pub(crate) opacity_keys: opacity_keys::Pending,
     control_rx: Option<Receiver<ControlRequest>>,
+    /// Ubunye: the Share & Collaborate window and its client (`ubunye::kopano_panel`).
+    pub kopano: ubunye::kopano_panel::KopanoPanel,
     pending_screenshots: Vec<(u64, Option<String>, Sender<ControlResponse>)>,
     /// Screenshots not yet requested from the viewport: (token, earliest time in ms, frames seen).
     queued_screenshots: Vec<(u64, f64, u32)>,
@@ -602,6 +604,7 @@ impl PhotocraftApp {
             caps_lock: false,
             opacity_keys: None,
             control_rx: None,
+            kopano: Default::default(),
             pending_screenshots: Vec::new(),
             queued_screenshots: Vec::new(),
             input_waiters: Vec::new(),
@@ -1386,6 +1389,7 @@ impl eframe::App for PhotocraftApp {
         notices::show(self, &ctx);
         gpu_status::show_fallback(self, &ctx);
         kys_import::show_offer(self, &ctx);
+        ubunye::kopano_panel::show(self, &ctx);
         if self.custom_titlebar {
             titlebar::resize_zones(ui);
         }

@@ -1,5 +1,6 @@
 //! Localhost JSON-lines control server (one request per line, one reply per line).
 //! Loopback only. This is the transport the MCP server will wrap.
+// Modified by Ubunye AI Ecosystems, 2026.
 
 use std::io::{BufReader, Write};
 use std::net::{TcpListener, TcpStream};
@@ -24,6 +25,19 @@ pub fn start(port: u16, token: String, ctx: egui::Context) -> Receiver<ControlRe
         }
     };
     eprintln!("photocraft: control server listening on 127.0.0.1:{port}");
+    serve_listener(listener, token, ctx, tx);
+    rx
+}
+
+/// Serve an already bound loopback listener (Ubunye: the collaboration panel starts the server on
+/// demand on a free port, `ubunye_collab.rs`).
+pub fn start_on(listener: TcpListener, token: String, ctx: egui::Context) -> Receiver<ControlRequest> {
+    let (tx, rx) = channel::<ControlRequest>();
+    serve_listener(listener, token, ctx, tx);
+    rx
+}
+
+fn serve_listener(listener: TcpListener, token: String, ctx: egui::Context, tx: Sender<ControlRequest>) {
     std::thread::spawn(move || {
         let limiter = ConnectionLimiter::new(MAX_CONNECTIONS);
         let token = Arc::new(token);
@@ -42,7 +56,6 @@ pub fn start(port: u16, token: String, ctx: egui::Context) -> Receiver<ControlRe
             });
         }
     });
-    rx
 }
 
 fn serve(stream: TcpStream, token: &str, tx: Sender<ControlRequest>, ctx: egui::Context) {

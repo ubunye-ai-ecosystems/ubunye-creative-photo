@@ -1,6 +1,7 @@
 <#
 .SYNOPSIS
   Build, sign and package PhotoCraft for Windows.
+  (Modified by Ubunye AI Ecosystems, 2026: UBUNYE_EXTRA_BIN_DIR / UBUNYE_EXTRA_WXS hooks.)
 
 .DESCRIPTION
   Produces, in $env:DIST (default: dist/release):
@@ -88,8 +89,16 @@ $Stage = Join-Path $TargetDir "windows-package\$Arch"
 Remove-Item -Recurse -Force $Stage -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $Stage | Out-Null
 Copy-Item (Join-Path $Bin 'photocraft.exe'), (Join-Path $Bin 'photocraft-cli.exe') $Stage
+# Ubunye: programs shipped beside Photo (kopanod, ThabangVision collaboration) and the WiX
+# fragment that installs them. Set by ubunye/packaging/windows/collab-package.ps1; empty otherwise.
+$ExtraExes = @()
+$ExtraWix = @()
+if ($env:UBUNYE_EXTRA_BIN_DIR) {
+  $ExtraExes = @(Get-ChildItem (Join-Path $env:UBUNYE_EXTRA_BIN_DIR '*.exe') | ForEach-Object { Copy-Item $_.FullName $Stage -PassThru } | ForEach-Object FullName)
+  if ($env:UBUNYE_EXTRA_WXS) { $ExtraWix = @($env:UBUNYE_EXTRA_WXS, '-d', "CollabBinDir=$Stage") }
+}
 
-& (Join-Path $PSScriptRoot 'sign.ps1') (Join-Path $Stage 'photocraft.exe') (Join-Path $Stage 'photocraft-cli.exe')
+& (Join-Path $PSScriptRoot 'sign.ps1') (Join-Path $Stage 'photocraft.exe') (Join-Path $Stage 'photocraft-cli.exe') @ExtraExes
 
 # ---- MSI ---------------------------------------------------------------------------------------
 # The setup wizard's art, drawn here from the app icon so the MSI shows PhotoCraft rather than
@@ -132,7 +141,7 @@ New-InstallerArt (Join-Path $Root 'assets\app-icon\hicolor\256x256\apps\org.ubun
 $Msi = Join-Path $Dist "photocraft-$Version-windows-$Arch.msi"
 & (Join-Path $PSScriptRoot 'check-icons.ps1')
 Invoke-Native 'wix build' {
-  wix build (Join-Path $PSScriptRoot 'photocraft.wxs') -arch $Arch `
+  wix build (Join-Path $PSScriptRoot 'photocraft.wxs') @ExtraWix -arch $Arch `
     -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext `
     -culture en-US -loc (Join-Path $PSScriptRoot 'photocraft.en-us.wxl') `
     -d "Version=$MsiVersion" -d "DisplayVersion=$Version" -d "BinDir=$Stage" -d "IconPath=$(Join-Path $Root 'assets\app-icon\photocraft.ico')" `

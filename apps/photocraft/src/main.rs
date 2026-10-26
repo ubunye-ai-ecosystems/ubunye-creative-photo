@@ -45,6 +45,8 @@ mod services;
 // Windows gets pen pressure from winit (WM_POINTER); the web runner has its own listener.
 #[cfg(any(target_os = "macos", target_os = "linux", test))]
 mod tablet;
+/// Ubunye: ThabangVision collaboration (kopanod beside the app; the control port on demand).
+mod ubunye_collab;
 mod ui_state;
 
 use photocraft_engine::Session;
@@ -244,7 +246,7 @@ fn main() -> eframe::Result {
                 std::process::exit(2);
             }
         };
-        if let Some(path) = token_file {
+        if let Some(path) = token_file.clone() {
             eprintln!("photocraft: control token file: {}", path.display());
         } else if supplied.is_none() {
             eprintln!("photocraft: control token: {token}");
@@ -258,10 +260,12 @@ fn main() -> eframe::Result {
                 std::process::exit(2);
             }
         };
-        Some((port, token, workspace))
+        Some((port, token, workspace, token_file))
     } else {
         None
     };
+    // Ubunye: find and start ThabangVision collaboration (kopanod) for this computer.
+    ubunye_collab::start_in_background();
     // Finder / Dock / Open With deliver files as Apple events, not arguments; catch the one that
     // launched us as well as later ones. Lives until the event loop returns.
     #[cfg(target_os = "macos")]
@@ -333,7 +337,7 @@ fn main() -> eframe::Result {
         options,
         Box::new(move |cc| {
             created_in_callback.store(true, std::sync::atomic::Ordering::Relaxed);
-            let automation = control.as_ref().map(|(_, _, workspace)| workspace.clone());
+            let automation = control.as_ref().map(|(_, _, workspace, _)| workspace.clone());
             let mut services = services::native(automation);
             services.preset_store = presets;
             #[cfg(target_os = "linux")]
@@ -429,7 +433,11 @@ fn main() -> eframe::Result {
                     log::warn!("couldn't remember GPU backend {}: {e}", b.name());
                 }
             });
-            if let Some((port, token, _)) = control {
+            // Ubunye: Share & Collaborate hands this window to kopanod through the control port
+            // (this one, or one it starts on the first Share or Join).
+            let existing = control.as_ref().map(|(port, token, _, file)| (*port, token.clone(), file.clone()));
+            app.kopano.start_control = Some(ubunye_collab::start_control(existing, app.kopano.client.config.home.clone()));
+            if let Some((port, token, _, _)) = control {
                 let rx = control_server::start(port, token, cc.egui_ctx.clone());
                 app = app.with_control(rx);
             }

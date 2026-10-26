@@ -555,6 +555,8 @@ pub fn title_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                     // A narrow bar drops what is also in a menu, Discord first (below), then
                     // the theme toggle (Preferences), then search (Edit › Search), and narrows
                     // the switcher (Window › Workspace) before anything runs over.
+                    // Ubunye: Share & Collaborate, always shown (the rightmost control).
+                    crate::ubunye::kopano_panel::top_bar_button(app, ui, 28.0);
                     let room = ui.available_width();
                     let icons_shown: u8 = if room >= WORKSPACE_MIN + 2.0 * ICON_SLOT {
                         2

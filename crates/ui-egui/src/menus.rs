@@ -22,6 +22,8 @@ pub const TOP_MENUS: [&str; 10] = ["File", "Edit", "Image", "Layer", "Type", "Se
 /// UI-level commands (handled by the shell rather than the engine): id, label, menu, shortcut.
 pub const UI_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("ui.symmetryTransform", "Transform Symmetry", &[], None),
+    // Ubunye: ThabangVision collaboration (`ubunye::kopano_panel`).
+    ("kopano.panel", "Share & Collaborate", &["Window"], None),
     ("file.open", "Open…", &["File"], Some("Cmd+O")),
     ("file.save", "Save", &["File"], Some("Cmd+S")),
     ("file.saveAs", "Save As…", &["File"], Some("Cmd+Shift+S")),
@@ -142,6 +144,10 @@ pub fn invoke(app: &mut PhotocraftApp, ctx: &egui::Context, id: &str, params: Va
 pub(crate) fn invoke_unguarded(app: &mut PhotocraftApp, ctx: &egui::Context, id: &str, params: Value) -> Result<Value, String> {
     if id == "ui.symmetryTransform" {
         return crate::symmetry_ui::begin(app).map(|_| Value::Null);
+    }
+    // Ubunye: Share & Collaborate and the commands its buttons run.
+    if let Some(r) = crate::ubunye::kopano_panel::command(app, ctx, id, &params) {
+        return r;
     }
     // A pending Pen anchor is gesture state; Edit › Undo must match the keyboard.
     if id == "edit.undo" && crate::vector_ui::pen_undo_last_point(app) {
@@ -637,6 +643,9 @@ fn checked(app: &PhotocraftApp, id: &str) -> Option<bool> {
     if let Some(name) = id.strip_prefix("window.theme.").filter(|n| *n != "toggle") {
         let auto = app.session.prefs().interface.appearance_mode == photocraft_engine::prefs::AppearanceMode::Auto;
         return Some(if name == "system" { auto } else { !auto && crate::theme::ThemeKind::from_name(name) == Some(app.ui.theme) });
+    }
+    if id == "kopano.panel" {
+        return Some(app.kopano.open);
     }
     if let Some(c) = crate::view_cmds::checked(app, id) {
         return Some(c);

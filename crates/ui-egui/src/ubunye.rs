@@ -3,6 +3,12 @@
 //! they drift. This file is Ubunye's own (not upstream PhotoCraft's), so upstream merges never
 //! touch it.
 
+/// ThabangVision collaboration: the client of the service on this computer and its window.
+pub mod kopano;
+pub mod kopano_panel;
+#[cfg(test)]
+mod tests_kopano;
+
 /// The product name shown in the UI, installers and package metadata.
 pub const NAME: &str = "Ubunye Photo";
 /// The short form, where a short name is needed.

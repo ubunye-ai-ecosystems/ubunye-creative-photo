@@ -113,3 +113,4 @@ crates/engine/Cargo.toml
 crates/engine/src/commands.rs
 crates/engine/src/lib.rs
 Cargo.lock
+apps/photocraft/src/control_server.rs
