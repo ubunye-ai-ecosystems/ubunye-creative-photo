@@ -98,9 +98,9 @@ pub mod type_caret_cmds;
 pub mod type_cmds;
 pub mod type_extra_cmds;
 pub mod type_spell_cmds;
+pub mod type_styles_cmds;
 /// Kopano sync plumbing (Ubunye fork; see the module docs).
 pub mod ubunye_kopano;
-pub mod type_styles_cmds;
 mod variables_cmds;
 pub mod vector_cmds;
 mod video_cmds;

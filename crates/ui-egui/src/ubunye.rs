@@ -61,7 +61,13 @@ mod tests {
     #[test]
     fn the_credit_and_licence_are_translated() {
         for lang in crate::i18n::Lang::all().filter(|l| l.complete_menus()) {
-            for s in ["{name}, part of {suite}.", "Based on PhotoCraft by the ArtCraft team", "License: MIT OR Apache-2.0", "Join the Community", "Upstream PhotoCraft Project"] {
+            for s in [
+                "{name}, part of {suite}.",
+                "Based on PhotoCraft by the ArtCraft team",
+                "License: MIT OR Apache-2.0",
+                "Join the Community",
+                "Upstream PhotoCraft Project",
+            ] {
                 assert!(crate::i18n::has(lang, s), "{}: {s}", lang.code());
             }
         }
