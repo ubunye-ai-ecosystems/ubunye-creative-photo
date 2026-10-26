@@ -81,8 +81,9 @@ pub struct KopanoPanel {
     pub share_account: String,
     /// "approve" (default) or "live": how the next Share works.
     pub share_mode: String,
-    /// The owner's pick per clash before approving: (project, item key) -> "member" | "main".
-    pub choices: BTreeMap<(String, String), String>,
+    /// The owner's pick per clash before approving: (project, member, item key) -> "member" |
+    /// "main". Two members may change the same setting; each one's picks are their own.
+    pub choices: BTreeMap<(String, String, String), String>,
     pub join_project: String,
     pub join_from: String,
     /// Shared documents an `attach` was sent for (once each).
@@ -93,10 +94,16 @@ pub struct KopanoPanel {
     pub widgets: BTreeMap<String, [f32; 4]>,
     /// When the background work last ran (wall ms).
     last_tick: f64,
-    /// This document's tiles as last listed: (when, document id, revision, tiles).
-    ours: (f64, u64, u64, BTreeSet<String>),
-    /// What was last written to each owned document's record.
-    recorded: BTreeMap<String, BTreeSet<String>>,
+    /// The document this window shares (its id): the service reads and updates that one only,
+    /// whichever document is in front (`pin_params`).
+    pub pinned: Option<u64>,
+    /// What was last written to each owned document's record (its saved file).
+    recorded: BTreeMap<String, String>,
+    /// Shared documents whose saved file is open here, offered to link again: project -> (the
+    /// shared name, the open document's id). Never linked without the person saying so.
+    pub offers: BTreeMap<String, (String, u64)>,
+    /// Offers the person said "Not now" to.
+    pub dismissed: BTreeSet<String>,
 }
 
 impl Default for KopanoPanel {
@@ -125,8 +132,10 @@ impl KopanoPanel {
             copied: None,
             widgets: BTreeMap::new(),
             last_tick: f64::NEG_INFINITY,
-            ours: (f64::NEG_INFINITY, 0, 0, BTreeSet::new()),
+            pinned: None,
             recorded: BTreeMap::new(),
+            offers: BTreeMap::new(),
+            dismissed: BTreeSet::new(),
         }
     }
 }
@@ -142,7 +151,7 @@ fn control_link(app: &mut PhotocraftApp, ctx: &egui::Context) -> Result<ControlL
         return Ok(l.clone());
     }
     let Some(start) = app.kopano.start_control.as_mut() else {
-        return Err("This window can't be shared: it has no control port (start Photo with --control PORT --control-token-file FILE)".to_string());
+        return Err("This window can't be shared right now. Restart Photo and try again.".to_string());
     };
     let started = start(ctx, &mut app.services)?;
     if let Some(rx) = started.rx {
@@ -181,6 +190,8 @@ pub fn command(app: &mut PhotocraftApp, ctx: &egui::Context, id: &str, p: &Value
             Ok(json!({"message": text}))
         }
         "kopano.share" => share(app, ctx, p),
+        "kopano.relink" => relink(app, ctx, p, true),
+        "kopano.notNow" => relink(app, ctx, p, false),
         "kopano.join" => join(app, ctx, p),
         "kopano.mode" => {
             let m = text_param(p, "mode", "approve");
@@ -194,11 +205,12 @@ pub fn command(app: &mut PhotocraftApp, ctx: &egui::Context, id: &str, p: &Value
         "kopano.decline" => review_op(app, ctx, "decline", p),
         "kopano.view" => review_op(app, ctx, "view", p),
         "kopano.choose" => {
-            let (project, key, pick) = (text_param(p, "project", ""), text_param(p, "key", ""), text_param(p, "pick", "member"));
-            if project.is_empty() || key.is_empty() || (pick != "member" && pick != "main") {
-                return Some(Err("Say which document, which setting, and member or main".to_string()));
+            let (project, member, key) = (text_param(p, "project", ""), text_param(p, "member", ""), text_param(p, "key", ""));
+            let pick = text_param(p, "pick", "member");
+            if project.is_empty() || member.is_empty() || key.is_empty() || (pick != "member" && pick != "main") {
+                return Some(Err("Say which document, whose changes, which setting, and member or main".to_string()));
             }
-            app.kopano.choices.insert((project, key), pick.clone());
+            app.kopano.choices.insert((project, member, key), pick.clone());
             Ok(json!({"pick": pick}))
         }
         "kopano.setApprover" => {
@@ -221,6 +233,13 @@ pub fn command(app: &mut PhotocraftApp, ctx: &egui::Context, id: &str, p: &Value
                 o.insert("controlPort".into(), json!(app.kopano.control.as_ref().map(|c| c.port)));
                 o.insert("apiPort".into(), json!(app.kopano.client.config.port));
                 o.insert("widgets".into(), json!(app.kopano.widgets));
+                // the open documents, which one is in front and which one this window shares
+                let active = app.session.active().map(|d| d.doc.id.0);
+                let docs: Vec<Value> =
+                    app.session.documents().iter().map(|d| json!({"id": d.doc.id.0, "name": d.doc.name, "active": Some(d.doc.id.0) == active})).collect();
+                o.insert("documents".into(), json!(docs));
+                o.insert("pinned".into(), json!(app.kopano.pinned));
+                o.insert("offers".into(), json!(app.kopano.offers.keys().collect::<Vec<_>>()));
                 let k = &app.kopano;
                 o.insert(
                     "fields".into(),
@@ -259,9 +278,11 @@ fn share(app: &mut PhotocraftApp, ctx: &egui::Context, p: &Value) -> Result<Valu
     }
     one_per_window(app)?;
     let link = control_link(app, ctx)?;
+    let doc = app.session.active().map(|d| d.doc.id.0);
     let members: Vec<Value> = accounts.iter().map(|a| json!({"account": a, "role": "editor", "lanes": []})).collect();
     let req = json!({"op": "create-project", "name": name, "app": kopano::binding(link.port, &link.token_file), "members": members, "mode": mode});
     app.kopano.client.request(ctx, "Sharing…", req)?;
+    app.kopano.pinned = doc;
     // the invite is on its way: the teammate's email does not stay on screen
     app.kopano.share_name.clear();
     app.kopano.share_account.clear();
@@ -298,8 +319,8 @@ fn review_op(app: &mut PhotocraftApp, ctx: &egui::Context, op: &str, p: &Value) 
     let busy = match op {
         "approve" => {
             let mut choices = serde_json::Map::new();
-            for ((pid, key), pick) in &app.kopano.choices {
-                if *pid == project {
+            for ((pid, who, key), pick) in &app.kopano.choices {
+                if *pid == project && *who == member {
                     choices.insert(key.clone(), json!(pick));
                 }
             }
@@ -317,13 +338,14 @@ fn review_op(app: &mut PhotocraftApp, ctx: &egui::Context, op: &str, p: &Value) 
     };
     app.kopano.client.request(ctx, busy, req)?;
     if op == "approve" || op == "decline" {
-        app.kopano.choices.retain(|(pid, _), _| *pid != project);
+        // only this member's picks: another member's changes may still wait with their own
+        app.kopano.choices.retain(|(pid, who, _), _| *pid != project || *who != member);
     }
     Ok(json!({"started": true}))
 }
 
-/// `kopano.join {project, from}`: join a teammate's shared document into this window. With no
-/// document open, a blank one is made first: the shared document comes into it.
+/// `kopano.join {project, from}`: join a teammate's shared document into this window. It always
+/// comes into a new document, never into work that is open.
 fn join(app: &mut PhotocraftApp, ctx: &egui::Context, p: &Value) -> Result<Value, String> {
     let project = text_param(p, "project", &app.kopano.join_project).to_lowercase();
     let from = text_param(p, "from", &app.kopano.join_from).to_lowercase();
@@ -334,12 +356,12 @@ fn join(app: &mut PhotocraftApp, ctx: &egui::Context, p: &Value) -> Result<Value
         return Err("The teammate's device id is 64 letters and digits (they copy it under Advanced)".to_string());
     }
     one_per_window(app)?;
-    if app.session.active().is_none() {
-        app.run("file.new", json!({"name": "Shared document", "width": 800, "height": 600, "background": "white"}))?;
-    }
     let link = control_link(app, ctx)?;
+    app.run("file.new", json!({"name": "Shared document", "width": 800, "height": 600, "background": "white"}))?;
+    let doc = app.session.active().map(|d| d.doc.id.0);
     let req = json!({"op": "join", "project": project, "from": from, "app": kopano::binding(link.port, &link.token_file)});
     app.kopano.client.request(ctx, "Joining…", req)?;
+    app.kopano.pinned = doc;
     Ok(json!({"started": true, "controlPort": link.port}))
 }
 
@@ -511,16 +533,16 @@ fn review_section(app: &mut PhotocraftApp, ui: &mut egui::Ui, p: &kopano::Projec
             dim(ui, format!("{} {side}. {}", tr("This window shows"), tr("Editing waits until you press Done.")));
         }
         for c in &e.clashes {
-            let pick = app.kopano.choices.get(&(p.id.clone(), c.key.clone())).cloned().unwrap_or_else(|| "member".to_string());
+            let pick = app.kopano.choices.get(&(p.id.clone(), e.account.clone(), c.key.clone())).cloned().unwrap_or_else(|| "member".to_string());
             dim(ui, format!("{} · {}: {} {} · {} {}", item_name(app, &c.item), kopano::setting_text(&c.setting), tr("yours"), c.main, e.name, c.member));
             ui.horizontal(|ui| {
                 ui.add_space(8.0);
                 let id = kopano::short(kopano::layer_key_of(&c.item).unwrap_or(&c.item)).to_string();
-                if choice(app, ui, &format!("kopano-keepMain-{tag}-{id}"), "Keep yours", pick == "main") {
-                    press_with(app, &ctx, "kopano.choose", json!({"project": p.id, "key": c.key, "pick": "main"}));
+                if choice(app, ui, &format!("kopano-keepMain-{tag}-{id}-{}", e.account), "Keep yours", pick == "main") {
+                    press_with(app, &ctx, "kopano.choose", json!({"project": p.id, "member": e.account, "key": c.key, "pick": "main"}));
                 }
-                if choice(app, ui, &format!("kopano-takeMember-{tag}-{id}"), "Take theirs", pick == "member") {
-                    press_with(app, &ctx, "kopano.choose", json!({"project": p.id, "key": c.key, "pick": "member"}));
+                if choice(app, ui, &format!("kopano-takeMember-{tag}-{id}-{}", e.account), "Take theirs", pick == "member") {
+                    press_with(app, &ctx, "kopano.choose", json!({"project": p.id, "member": e.account, "key": c.key, "pick": "member"}));
                 }
             });
         }
@@ -554,37 +576,48 @@ fn clash_section(app: &mut PhotocraftApp, ui: &mut egui::Ui, p: &kopano::Project
     }
 }
 
-/// How often the background work runs, and how often this document's tiles are listed again.
+/// How often the background work runs.
 const TICK_MS: f64 = 2000.0;
-const LIST_MS: f64 = 30000.0;
 
-/// The active document's tiles (as the service names them), listed again at most every 30 s and
-/// only after the document changed. `None` with no document open.
-fn our_tiles(app: &mut PhotocraftApp, now: f64) -> Option<BTreeSet<String>> {
-    let (doc, revision) = app.session.active().map(|d| (d.doc.id.0, d.revision))?;
-    let (at, d0, r0, _) = app.kopano.ours;
-    if (d0, r0) != (doc, revision) && (now - at >= LIST_MS || d0 != doc) {
-        // the same bundle the service reads; unchanged since its last export, it is the cached one
-        let tiles = match app.session.execute("kopano.export", json!({})) {
-            Ok(v) => {
-                let mut out = BTreeSet::new();
-                kopano::tile_hashes(v.pointer("/manifest/document").unwrap_or(&Value::Null), &mut out);
-                out
-            }
-            Err(e) => {
-                log::warn!("collaboration: could not list this document's tiles: {e}");
-                BTreeSet::new()
-            }
-        };
-        app.kopano.ours = (now, doc, revision, tiles);
+/// `kopano.export|objects|stage|import` from the service carry no document: they are for the
+/// document this window shares, never for whichever one is in front.
+pub fn pin_params(app: &PhotocraftApp, id: &str, mut params: Value) -> Value {
+    if matches!(id, "kopano.export" | "kopano.objects" | "kopano.import")
+        && let (Some(doc), Some(o)) = (app.kopano.pinned, params.as_object_mut())
+        && !o.contains_key("doc")
+    {
+        o.insert("doc".into(), json!(doc));
     }
-    Some(app.kopano.ours.3.clone())
+    params
+}
+
+/// The saved file of an open document.
+fn saved_file(app: &PhotocraftApp, doc: u64) -> Option<String> {
+    app.session.documents().iter().find(|d| d.doc.id.0 == doc).and_then(|d| d.path.clone())
+}
+
+/// `kopano.relink {project}` / `kopano.notNow {project}`: the answer to "link it again?".
+fn relink(app: &mut PhotocraftApp, ctx: &egui::Context, p: &Value, yes: bool) -> Result<Value, String> {
+    let project = text_param(p, "project", "");
+    let Some((name, doc)) = app.kopano.offers.remove(&project) else { return Err("Nothing to link here".to_string()) };
+    if !yes {
+        app.kopano.dismissed.insert(project);
+        return Ok(json!({"linked": false}));
+    }
+    if saved_file(app, doc).is_none() {
+        return Err("That document is closed".to_string());
+    }
+    let link = control_link(app, ctx)?;
+    app.kopano.pinned = Some(doc);
+    app.kopano.attached.insert(project.clone());
+    app.kopano.client.attach(ctx, &project, &name, kopano::binding(link.port, &link.token_file));
+    Ok(json!({"linked": true}))
 }
 
 /// Background work each frame, open or not (only where the window can be reached: the desktop
-/// app): follow the service, remember which tiles each document this window shares holds, and
-/// after a restart on a new port link the shared documents this document holds back to this
-/// window (`attach`).
+/// app): follow the service, remember which saved file each document this window shares is,
+/// and after a restart on a new port offer to link a shared document whose saved file is open
+/// here again. Nothing is exported here (that is the service's job, off this thread).
 pub fn tick(app: &mut PhotocraftApp, ctx: &egui::Context) {
     if app.kopano.start_control.is_none() && app.kopano.control.is_none() {
         return;
@@ -598,30 +631,35 @@ pub fn tick(app: &mut PhotocraftApp, ctx: &egui::Context) {
     let state = app.kopano.client.state();
     let Some(home) = app.kopano.client.config.home.clone().filter(|_| state.running) else { return };
     let mine = app.kopano.control.as_ref().map(|c| c.port);
+    let free = bound_here(app, &state).is_none() && app.kopano.pinned.is_none();
+    app.kopano.offers.retain(|id, (_, doc)| free && state.projects.iter().any(|p| &p.id == id) && saved_file_open(&app.session, *doc));
     for p in &state.projects {
         let Some(port) = p.app_port else { continue };
         if Some(port) == mine {
-            let Some(ours) = our_tiles(app, now).filter(|t| !t.is_empty()) else { continue };
-            if app.kopano.recorded.get(&p.id) != Some(&ours) {
-                match kopano::write_record(&home, &p.id, &ours) {
+            let Some(file) = app.kopano.pinned.and_then(|d| saved_file(app, d)) else { continue };
+            if app.kopano.recorded.get(&p.id) != Some(&file) {
+                match kopano::write_record(&home, &p.id, &file) {
                     Ok(()) => {
-                        app.kopano.recorded.insert(p.id.clone(), ours);
+                        app.kopano.recorded.insert(p.id.clone(), file);
                     }
-                    Err(e) => log::warn!("collaboration: could not remember the tiles of {}: {e}", p.name),
+                    Err(e) => log::warn!("collaboration: could not remember the file of {}: {e}", p.name),
                 }
             }
-        } else if p.app_alive == Some(false) && !app.kopano.attached.contains(&p.id) && bound_here(app, &state).is_none() {
-            let Some(ours) = our_tiles(app, now) else { continue };
-            if !kopano::holds(&kopano::read_record(&home, &p.id), &ours) {
-                continue;
-            }
-            app.kopano.attached.insert(p.id.clone());
-            match control_link(app, ctx) {
-                Ok(link) => app.kopano.client.attach(ctx, &p.id, &p.name, kopano::binding(link.port, &link.token_file)),
-                Err(error) => kopano::lock(&app.kopano.client.shared).note(Some(p.id.clone()), kopano::Said::AppProblem { error }, now),
+        } else if free && p.app_alive == Some(false) && !app.kopano.attached.contains(&p.id) && !app.kopano.dismissed.contains(&p.id) {
+            // the same saved file, open here: ask (white tiles or a copy are no proof)
+            let Some(file) = kopano::read_record(&home, &p.id) else { continue };
+            if let Some(d) = app.session.documents().iter().find(|d| d.path.as_deref() == Some(file.as_str())) {
+                if !app.kopano.offers.contains_key(&p.id) {
+                    app.kopano.offers.insert(p.id.clone(), (p.name.clone(), d.doc.id.0));
+                    ctx.request_repaint();
+                }
             }
         }
     }
+}
+
+fn saved_file_open(session: &photocraft_engine::Session, doc: u64) -> bool {
+    session.documents().iter().any(|d| d.doc.id.0 == doc && d.path.is_some())
 }
 
 fn float_frame(t: &Tokens) -> egui::Frame {
@@ -728,7 +766,7 @@ fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, state: &State) {
             if let Some(p) = &state.problem
                 && p != kopano::NOT_RUNNING
             {
-                dim(ui, p.clone());
+                dim(ui, kopano::plain(p));
             }
         }
     }
@@ -736,6 +774,24 @@ fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, state: &State) {
     heading(ui, "Shared documents");
     if state.projects.is_empty() {
         dim(ui, tr("Nothing shared yet."));
+    }
+    let offers: Vec<(String, String)> = app.kopano.offers.iter().map(|(id, (name, _))| (id.clone(), name.clone())).collect();
+    for (id, name) in offers {
+        ui.add(
+            egui::Label::new(
+                RichText::new(format!("{} {name}. {}", tr("This document was shared as"), tr("Work on it together again?"))).color(t.text).size(11.5),
+            )
+            .wrap(),
+        );
+        ui.horizontal(|ui| {
+            let tag = kopano::short(&id).to_string();
+            if button(app, ui, &format!("kopano-relink-{tag}"), "Work together again", false) {
+                press_with(app, &ctx, "kopano.relink", json!({"project": id}));
+            }
+            if button(app, ui, &format!("kopano-notNow-{tag}"), "Not now", false) {
+                press_with(app, &ctx, "kopano.notNow", json!({"project": id}));
+            }
+        });
     }
     let mine = app.kopano.control.as_ref().map(|c| c.port);
     for p in &state.projects {
@@ -839,7 +895,8 @@ fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, state: &State) {
         } else {
             t.warning
         };
-        ui.add(egui::Label::new(RichText::new(&job.text).color(color).size(11.5)).wrap());
+        let text = if job.ok || job.busy { job.text.clone() } else { kopano::plain(&job.text) };
+        ui.add(egui::Label::new(RichText::new(text).color(color).size(11.5)).wrap());
     }
 }
 

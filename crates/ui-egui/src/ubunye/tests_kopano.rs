@@ -201,6 +201,8 @@ struct FakeData {
     app_port: AtomicUsize,
     signed_out: AtomicBool,
     approve_owner: AtomicBool,
+    /// With `approve_owner`: Member2's changes wait too, clashing on the same setting.
+    two_members: AtomicBool,
     approve_member: AtomicBool,
     live_clash: AtomicBool,
 }
@@ -310,6 +312,13 @@ fn serve(c: TcpStream, got: &Mutex<Vec<Value>>, stop: &AtomicBool, data: &FakeDa
                             "changes": [{"photo": format!("layer/{UID}"), "fields": []}],
                             "clashes": [{"key": format!("layer/{UID}"), "photo": format!("layer/{UID}"), "fields": ["opacity"],
                                 "settings": [{"setting": "opacity", "main": 0.5, "member": 1.0}]}]}]});
+                    if data.two_members.load(Ordering::SeqCst) {
+                        let mut m2 = st["review"]["pending"][0].clone();
+                        m2["account"] = json!("acct-m2");
+                        m2["name"] = json!("Member2");
+                        m2["version"] = json!("v2");
+                        st["review"]["pending"].as_array_mut().unwrap().push(m2);
+                    }
                 } else if data.approve_member.load(Ordering::SeqCst) {
                     st["mode"] = json!("approve");
                     st["review"] = json!({"is_owner": false, "approver": false, "owner_name": "Alice", "declined": [], "pending": [], "viewing": null,
@@ -411,19 +420,18 @@ fn a_wrong_token_is_explained() {
 }
 
 #[test]
-fn records_say_which_shared_documents_this_document_holds() {
+fn records_say_which_saved_file_a_shared_document_is() {
     let home = temp_home();
-    let set = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<BTreeSet<_>>();
-    assert!(read_record(&home, PID).is_empty());
-    write_record(&home, PID, &set(&["a", "b", "c", "d"])).unwrap();
+    assert_eq!(read_record(&home, PID), None);
+    write_record(&home, PID, "T:/work/portrait.pcraft").unwrap();
     assert_eq!(record_path(&home, PID).unwrap(), home.join("photo").join(format!("{PID}.json")));
-    assert_eq!(read_record(&home, PID), set(&["a", "b", "c", "d"]));
-    assert!(holds(&read_record(&home, PID), &set(&["a", "b", "x"])));
-    assert!(!holds(&read_record(&home, PID), &set(&["a", "x"])));
-    assert!(!holds(&set(&[]), &set(&["a"])));
-    assert!(write_record(&home, "../evil", &set(&["a"])).is_err());
+    assert_eq!(read_record(&home, PID).as_deref(), Some("T:/work/portrait.pcraft"));
+    assert!(write_record(&home, "../evil", "x").is_err());
+    // an old record of tile hashes is no identity: not trusted
+    std::fs::write(record_path(&home, PID).unwrap(), r#"{"tiles":["a","b"]}"#).unwrap();
+    assert_eq!(read_record(&home, PID), None);
     std::fs::write(record_path(&home, PID).unwrap(), "junk").unwrap();
-    assert!(read_record(&home, PID).is_empty());
+    assert_eq!(read_record(&home, PID), None);
 }
 
 #[test]
@@ -687,7 +695,7 @@ fn share_needs_a_document_a_name_and_a_control_port() {
     let mut h = harness(config.clone(), true);
     let r = run(&mut h, "kopano.share", json!({"name": "x", "account": "acct-m1"}));
     assert_eq!(r["ok"], false);
-    assert!(r["error"].as_str().unwrap().contains("--control"), "{r}");
+    assert!(r["error"].as_str().unwrap().contains("can't be shared right now"), "{r}");
     let r = run(&mut h, "kopano.share", json!({"name": "", "account": "acct-m1"}));
     assert!(r["error"].as_str().unwrap().contains("name"), "{r}");
     let mut h = harness(config, false);
@@ -716,47 +724,148 @@ fn join_with_no_document_open_makes_one_for_the_shared_document() {
     assert_eq!(fake.requests("join")[0]["from"], M1);
 }
 
+/// Review finding 6: Join brings the shared document into a new document; the open work stays.
 #[test]
-fn after_a_restart_the_window_links_its_shared_document_again() {
+fn join_never_replaces_the_open_document() {
+    let (fake, config, _home) = fake_service();
+    let mut h = harness(config, true);
+    h.state_mut().kopano.start_control = Some(start_control_counting(Arc::default()));
+    let mine = h.state().session.active().unwrap().doc.id.0;
+    ok(run(&mut h, "kopano.join", json!({"project": PID, "from": M1})));
+    wait("the join", T, || fake.requests("join").len() == 1);
+    let s = &h.state().session;
+    assert_eq!(s.documents().len(), 2, "a new document for the shared one");
+    let new = s.active().unwrap().doc.id.0;
+    assert_ne!(new, mine);
+    assert_eq!(h.state().kopano.pinned, Some(new), "the service works on the new document only");
+    assert!(s.documents().iter().any(|d| d.doc.id.0 == mine && d.doc.name == "Portrait"), "the open work is still there");
+}
+
+/// Review finding 1: the service reads and updates the shared document, whichever is in front.
+#[test]
+fn the_service_works_on_the_shared_document_not_the_one_in_front() {
+    let (fake, config, _home) = fake_service();
+    let mut h = harness(config, true);
+    h.state_mut().kopano.start_control = Some(start_control_counting(Arc::default()));
+    let shared = h.state().session.active().unwrap().doc.id.0;
+    ok(run(&mut h, "kopano.share", json!({"name": "Portrait together", "account": "a@example.com"})));
+    wait("the share", T, || fake.requests("create-project").len() == 1);
+    assert_eq!(h.state().kopano.pinned, Some(shared));
+    let a = ok(run(&mut h, "kopano.export", json!({})));
+    // the person opens other work in front
+    ok(run(&mut h, "file.new", json!({"name": "Other", "width": 32, "height": 32, "background": "black"})));
+    let other = h.state().session.active().unwrap().doc.id.0;
+    assert_ne!(other, shared);
+    // what the service asks for (no document named) is about the shared document
+    let b = ok(run(&mut h, "kopano.export", json!({})));
+    assert_eq!(a["manifest"]["document"], b["manifest"]["document"]);
+    let before = h.state().session.active().unwrap().revision;
+    let r = run(&mut h, "kopano.import", json!({"manifest": a["manifest"]}));
+    assert_eq!(r["ok"], false, "an update never lands in the document in front: {r}");
+    assert_eq!(h.state().session.active().unwrap().doc.id.0, other);
+    assert_eq!(h.state().session.active().unwrap().revision, before, "the other document is untouched");
+}
+
+/// Review finding 2: after a restart, the saved file of a shared document is open here: the
+/// window asks before linking it again, and links only on "Work together again".
+#[test]
+fn after_a_restart_the_window_asks_before_linking_its_shared_document_again() {
     let (fake, config, home) = fake_service();
     // the document was bound to a port nobody answers on any more (Photo restarted)
     let dead = TcpListener::bind(("127.0.0.1", 0)).unwrap().local_addr().unwrap().port();
     fake.data.app_port.store(usize::from(dead), Ordering::SeqCst);
     let mut h = harness(config, true);
     h.state_mut().kopano.control = Some(ControlLink { port: 18777, token_file: PathBuf::from("T:/k/photo/control-18777.token") });
-    // this document holds the shared document's tiles
-    let export = h.state_mut().session.execute("kopano.export", json!({})).unwrap();
-    let mut ours = BTreeSet::new();
-    tile_hashes(&export["manifest"]["document"], &mut ours);
-    assert!(!ours.is_empty(), "a white document has tiles");
-    write_record(&home, PID, &ours).unwrap();
-    // with the window closed: the background work does it
+    h.state_mut().session.active_mut().unwrap().path = Some("T:/work/portrait.pcraft".into());
+    write_record(&home, PID, "T:/work/portrait.pcraft").unwrap();
+    ok(run(&mut h, "kopano.panel", json!({})));
+    assert!(shows(&mut h, "Work on it together again?"), "{}", drawn_text(&h));
+    no_protocol_words(&drawn_text(&h));
+    assert!(!drawn_text(&h).contains("portrait.pcraft"), "no file paths on screen");
+    for _ in 0..50 {
+        h.step();
+    }
+    assert!(fake.requests("attach").is_empty(), "never linked without asking");
+    click(&mut h, &format!("button:kopano-relink-{}", short(PID)));
     assert!(step_until(&mut h, |_| fake.data.app_port.load(Ordering::SeqCst) == 18777), "attach not sent: {:?}", fake.requests("attach"));
     assert_eq!(fake.requests("attach")[0]["app"], json!({"kind": "photo-control", "port": 18777, "token_file": "T:/k/photo/control-18777.token"}));
     assert!(step_until(&mut h, |h| h.state().kopano.client.state().activity.iter().any(|a| a.said.text() == "This window is linked to Portrait again")));
-    // and now bound here, it keeps the record up to date
-    assert!(step_until(&mut h, |_| read_record(&home, PID) == ours));
+    assert_eq!(h.state().kopano.pinned, Some(h.state().session.active().unwrap().doc.id.0));
     for _ in 0..50 {
         h.step();
     }
     assert_eq!(fake.requests("attach").len(), 1, "attached once");
 }
 
+/// Review finding 2: white tiles are no identity. A blank document whose tiles match, or a
+/// different saved file, is not offered; "Not now" is remembered.
 #[test]
-fn a_dead_port_of_a_document_this_one_does_not_hold_is_left_alone() {
+fn a_document_that_only_looks_alike_is_never_linked() {
     let (fake, config, home) = fake_service();
     let dead = TcpListener::bind(("127.0.0.1", 0)).unwrap().local_addr().unwrap().port();
     fake.data.app_port.store(usize::from(dead), Ordering::SeqCst);
-    write_record(&home, PID, &["someone-elses-tile".to_string()].into_iter().collect()).unwrap();
     let mut h = harness(config, true);
     h.state_mut().kopano.control = Some(ControlLink { port: 18778, token_file: PathBuf::from("T:/x.token") });
+    // the old kind of record: this white document's own tiles
+    let export = h.state_mut().session.execute("kopano.export", json!({})).unwrap();
+    let mut ours = BTreeSet::new();
+    tile_hashes(&export["manifest"]["document"], &mut ours);
+    write_record(&home, PID, "placeholder").unwrap();
+    std::fs::write(record_path(&home, PID).unwrap(), json!({"tiles": ours}).to_string()).unwrap();
     assert!(step_until(&mut h, |h| h.state().kopano.client.state().projects.first().is_some_and(|p| p.app_alive == Some(false))));
     let t0 = Instant::now();
-    while t0.elapsed() < Duration::from_secs(5) {
+    while t0.elapsed() < Duration::from_secs(3) {
         h.step();
         std::thread::sleep(Duration::from_millis(20));
     }
-    assert!(fake.requests("attach").is_empty());
+    assert!(h.state().kopano.offers.is_empty() && fake.requests("attach").is_empty());
+    // a different saved file: not offered either
+    h.state_mut().session.active_mut().unwrap().path = Some("T:/work/other.pcraft".into());
+    write_record(&home, PID, "T:/work/portrait.pcraft").unwrap();
+    for _ in 0..60 {
+        h.step();
+        std::thread::sleep(Duration::from_millis(40));
+    }
+    assert!(h.state().kopano.offers.is_empty());
+    // the same file: offered; Not now: not offered again
+    h.state_mut().session.active_mut().unwrap().path = Some("T:/work/portrait.pcraft".into());
+    assert!(step_until(&mut h, |h| !h.state().kopano.offers.is_empty()));
+    ok(run(&mut h, "kopano.notNow", json!({"project": PID})));
+    for _ in 0..60 {
+        h.step();
+        std::thread::sleep(Duration::from_millis(40));
+    }
+    assert!(h.state().kopano.offers.is_empty() && fake.requests("attach").is_empty());
+}
+
+/// Review finding 7: problems are said in plain words, never with a file path, the service's
+/// words or the protocol's name.
+#[test]
+fn problems_are_said_in_plain_words() {
+    for raw in [
+        "the collaboration key file is missing (C:\\Users\\x\\AppData\\Local\\Kopano\\api.token)",
+        "bad token",
+        "unknown op create-project",
+        "Photo command kopano.export: Photo stopped answering",
+    ] {
+        let said = plain(raw);
+        assert!(!said.contains('\\') && !said.contains('/') && !said.to_lowercase().contains("kopano") && !said.contains("op "), "{raw} -> {said}");
+    }
+    assert_eq!(plain("bad token"), "The collaboration service is not running. Restart Photo.");
+    assert_eq!(plain("Give the shared document a name"), "Give the shared document a name");
+    // on screen: a broken key file
+    let home = temp_home();
+    std::fs::write(home.join("api.token"), "").unwrap();
+    let config = Config { home: Some(home.clone()), port: 1 };
+    let mut h = harness(config, true);
+    ok(run(&mut h, "kopano.panel", json!({})));
+    assert!(step_until(&mut h, |h| h.state().kopano.client.state().problem.is_some()));
+    for _ in 0..10 {
+        h.step();
+    }
+    let p = drawn_text(&h);
+    no_protocol_words(&p);
+    assert!(!p.contains("api.token") && !p.contains(&home.display().to_string()), "{p}");
 }
 
 #[test]
@@ -791,7 +900,7 @@ fn the_owner_reviews_views_approves_and_declines_from_the_window() {
     assert_eq!(fake.requests("view")[0]["member"], "acct-m1");
     assert!(shows(&mut h, "Showing their version of the document"), "{}", drawn_text(&h));
     // the clash: keep main's value, then approve with that pick
-    click(&mut h, &format!("button:kopano-keepMain-{tag}-{}", short(UID)));
+    click(&mut h, &format!("button:kopano-keepMain-{tag}-{}-acct-m1", short(UID)));
     click(&mut h, &format!("button:kopano-approve-{tag}-acct-m1"));
     wait("the approve", T, || fake.requests("approve").len() == 1);
     let a = &fake.requests("approve")[0];
@@ -883,4 +992,40 @@ fn a_change_seen_by_a_poll_before_its_event_is_said_once() {
     m.apply_status(PID, &json!({"teammates": [], "review": {"owner_name": "Alice", "mine": {"state": "approved"}}}));
     m.apply_event(&json!({"event": "review", "project": PID, "owner_name": "Alice", "mine": {"state": "approved"}}), 3000.0);
     assert_eq!(m.activity.iter().map(|a| a.said.text()).collect::<Vec<_>>(), ["Alice approved your changes"]);
+}
+
+/// Review finding 5: two members changed the same setting. Each member's clash picks are their
+/// own: approving Member1 sends only Member1's picks and keeps Member2's for later.
+#[test]
+fn clash_picks_belong_to_one_member() {
+    let (fake, config, _home) = fake_service();
+    fake.data.approve_owner.store(true, Ordering::SeqCst);
+    fake.data.two_members.store(true, Ordering::SeqCst);
+    let mut h = harness(config, true);
+    h.state_mut().kopano.start_control = Some(start_control_counting(Arc::default()));
+    let layer = h.state().session.active().unwrap().doc.layers[0].id.0;
+    std::sync::Arc::make_mut(&mut h.state_mut().session.active_mut().unwrap().doc)
+        .metadata
+        .text
+        .push((LAYER_KEYS.into(), json!({layer.to_string(): UID}).to_string()));
+    ok(run(&mut h, "kopano.panel", json!({})));
+    assert!(step_until(&mut h, |h| drawn_text(h).contains("Member2 changed 1 layer")), "{}", drawn_text(&h));
+    let tag = short(PID);
+    // Member1: keep yours; Member2: take theirs, then keep yours
+    click(&mut h, &format!("button:kopano-keepMain-{tag}-{}-acct-m1", short(UID)));
+    click(&mut h, &format!("button:kopano-takeMember-{tag}-{}-acct-m2", short(UID)));
+    ok(run(&mut h, "kopano.choose", json!({"project": PID, "member": "acct-m2", "key": format!("layer/{UID}"), "pick": "main"})));
+    ok(run(&mut h, "kopano.choose", json!({"project": PID, "member": "acct-m2", "key": "layer/other", "pick": "member"})));
+    click(&mut h, &format!("button:kopano-approve-{tag}-acct-m1"));
+    wait("the approve", T, || fake.requests("approve").len() == 1);
+    assert_eq!(fake.requests("approve")[0]["choices"], json!({format!("layer/{UID}"): "main"}), "only Member1's picks");
+    // Member2's picks survive Member1's approval
+    let left: Vec<_> = h.state().kopano.choices.keys().cloned().collect();
+    assert_eq!(left.len(), 2, "{left:?}");
+    assert!(left.iter().all(|(_, who, _)| who == "acct-m2"), "{left:?}");
+    assert!(step_until(&mut h, |h| !h.state().kopano.client.state().job.as_ref().is_some_and(|j| j.busy)));
+    ok(run(&mut h, "kopano.decline", json!({"project": PID, "member": "acct-m2", "version": "v2"})));
+    assert!(h.state().kopano.choices.is_empty());
+    // a pick without the member is refused
+    assert_eq!(run(&mut h, "kopano.choose", json!({"project": PID, "key": "layer/x", "pick": "main"}))["ok"], false);
 }

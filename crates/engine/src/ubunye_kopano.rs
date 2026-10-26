@@ -14,6 +14,10 @@
 //!   undoable step; with `revision`, only if the document is still at that revision. Objects come from the staged ones, else from the last export. Every object is
 //!   checked against its BLAKE3 hash by the bundle loader.
 //!
+//! Every command takes an optional `doc` (a document id): the shared document. Export and
+//! objects read that document even when another one is in front; an import is refused unless
+//! that document is the active one, so a teammate's update never lands in unrelated work.
+//!
 //! Nothing here touches the file system, so the commands are safe for automation.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -33,13 +37,16 @@ const REPLY_BUDGET: usize = 5 << 20;
 const STAGE_LIMIT: usize = 4 << 30;
 /// Largest single object accepted or served.
 const MAX_OBJECT: usize = 1 << 30;
-/// Documents whose last export is kept.
+/// Documents whose last export is kept, and the bytes those exports may hold together.
 const MAX_CACHED: usize = 4;
+const CACHE_BYTES: usize = 1 << 30;
 
 struct Exported {
     writer: PcraftWriter,
     zip: Arc<Vec<u8>>,
     revision: u64,
+    /// When it was last used (a counter), to drop the least recently used first.
+    used: u64,
 }
 
 #[derive(Default)]
@@ -49,6 +56,12 @@ struct State {
     /// Staged objects by hash (zstd bytes) and their total size.
     staged: BTreeMap<String, Vec<u8>>,
     staged_bytes: usize,
+    uses: u64,
+}
+
+fn next_use(st: &mut State) -> u64 {
+    st.uses += 1;
+    st.uses
 }
 
 static STATE: Mutex<Option<State>> = Mutex::new(None);
@@ -74,43 +87,61 @@ fn has_doc(s: &Session) -> std::result::Result<(), String> {
     s.active().map(|_| ()).ok_or_else(|| "no document open".into())
 }
 
-/// Export the active document (incrementally) and remember the bundle.
-fn export_active(s: &Session) -> Result<(u64, Arc<Vec<u8>>)> {
-    let d = s.active().ok_or(EngineError::NoDocument)?;
+/// The document a command is for: `doc` when given (it must be open), else the active one.
+fn target<'a>(s: &'a Session, p: &Value) -> Result<&'a crate::DocState> {
+    match p.get("doc") {
+        None | Some(Value::Null) => s.active().ok_or(EngineError::NoDocument),
+        Some(v) => {
+            let id = v.as_u64().ok_or_else(|| bad("kopano", "`doc` must be a document id"))?;
+            s.documents().iter().find(|d| d.doc.id.0 == id).ok_or_else(|| EngineError::Other("the shared document is closed".into()))
+        }
+    }
+}
+
+/// Export the target document (incrementally) and remember the bundle.
+fn export_active(s: &Session, p: &Value) -> Result<(u64, Arc<Vec<u8>>)> {
+    let d = target(s, p)?;
+    let open: BTreeSet<u64> = s.documents().iter().map(|d| d.doc.id.0).collect();
     let doc_id = d.doc.id.0;
     let revision = d.revision;
     let doc = d.doc.clone();
     with_state(|st| {
-        if let Some(e) = st.docs.get(&doc_id)
+        let used = next_use(st);
+        if let Some(e) = st.docs.get_mut(&doc_id)
             && e.revision == revision
         {
+            e.used = used;
             return Ok((doc_id, e.zip.clone()));
         }
         let mut writer = st.docs.remove(&doc_id).map(|e| e.writer).unwrap_or_default();
         let (zip, _) = writer.save_zip(&doc, &SaveOptions::default()).map_err(fmt_err)?;
         let zip = Arc::new(zip);
-        while st.docs.len() >= MAX_CACHED {
-            let Some(oldest) = st.docs.keys().next().copied() else { break };
+        // closed documents go first, then the least recently used until both limits hold
+        st.docs.retain(|id, _| open.contains(id));
+        let bytes = |st: &State| st.docs.values().map(|e| e.zip.len()).sum::<usize>();
+        while !st.docs.is_empty() && (st.docs.len() >= MAX_CACHED || bytes(st) + zip.len() > CACHE_BYTES) {
+            let Some(oldest) = st.docs.iter().min_by_key(|(_, e)| e.used).map(|(id, _)| *id) else { break };
             st.docs.remove(&oldest);
         }
-        st.docs.insert(doc_id, Exported { writer, zip: zip.clone(), revision });
+        let used = next_use(st);
+        st.docs.insert(doc_id, Exported { writer, zip: zip.clone(), revision, used });
         Ok((doc_id, zip))
     })
 }
 
-fn export(s: &mut Session, _p: &Value) -> Result<Value> {
-    let (_, zip) = export_active(s)?;
+fn export(s: &mut Session, p: &Value) -> Result<Value> {
+    let (_, zip) = export_active(s, p)?;
     let r = ZipReader::new(&zip).map_err(fmt_err)?;
     let manifest: Value = serde_json::from_slice(&r.read_by_name("manifest.json", 256 << 20).map_err(fmt_err)?)
         .map_err(|e| EngineError::Other(format!("Kopano bundle manifest: {e}")))?;
-    let revision = s.active().map(|d| d.revision).unwrap_or(0);
+    let revision = target(s, p).map(|d| d.revision).unwrap_or(0);
     Ok(json!({"manifest": manifest, "revision": revision}))
 }
 
 fn objects(s: &mut Session, p: &Value) -> Result<Value> {
     const CMD: &str = "kopano.objects";
     let hashes = p.get("hashes").and_then(Value::as_array).ok_or_else(|| bad(CMD, "`hashes` must be an array of BLAKE3 hex strings"))?;
-    let (_, zip) = export_active(s)?;
+    let (_, zip) = export_active(s, p)?;
     let r = ZipReader::new(&zip).map_err(fmt_err)?;
     let by_name: BTreeMap<&str, &photocraft_format::zip::Entry> = r.entries.iter().map(|e| (e.name.as_str(), e)).collect();
     let (mut out, mut more, mut missing, mut used) = (serde_json::Map::new(), Vec::new(), Vec::new(), 0usize);
@@ -196,6 +227,11 @@ fn referenced(v: &Value, tiles: &mut BTreeSet<String>, blobs: &mut BTreeSet<Stri
 fn import(s: &mut Session, p: &Value) -> Result<Value> {
     const CMD: &str = "kopano.import";
     let manifest = p.get("manifest").filter(|m| m.is_object()).ok_or_else(|| bad(CMD, "`manifest` must be a .pcraft manifest object"))?;
+    // an update goes into the shared document only, never into whatever else is in front
+    let shared = target(s, p)?.doc.id;
+    if s.active().map(|d| d.doc.id) != Some(shared) {
+        return Err(EngineError::Other("the shared document is not in front; its update waits until it is".into()));
+    }
     if let Some(base) = p.get("revision") {
         let base = base.as_u64().ok_or_else(|| bad(CMD, "`revision` must be a whole number"))?;
         let now = s.active().map(|d| d.revision).ok_or(EngineError::NoDocument)?;
@@ -203,7 +239,7 @@ fn import(s: &mut Session, p: &Value) -> Result<Value> {
             return Err(EngineError::Other(format!("the document changed since revision {base} (now {now}); export again and rebuild the update")));
         }
     }
-    let (doc_id, last) = export_active(s)?;
+    let (doc_id, last) = export_active(s, p)?;
     let last = ZipReader::new(&last).map_err(fmt_err)?;
     let by_name: BTreeMap<&str, &photocraft_format::zip::Entry> = last.entries.iter().map(|e| (e.name.as_str(), e)).collect();
     let (mut tiles, mut blobs) = (BTreeSet::new(), BTreeSet::new());
@@ -232,7 +268,7 @@ fn import(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let bundle = z.finish().map_err(fmt_err)?;
     let fresh = photocraft_format::load_from_bytes_with(&bundle, &LoadOptions { preserve_ids: true, ..LoadOptions::default() }).map_err(fmt_err)?;
-    s.edit("Kopano Update", |doc, active| {
+    s.edit("Teammate Update", |doc, active| {
         let (id, name) = (doc.id, doc.name.clone());
         *doc = fresh;
         // Keep the identity (colour state, views and caches are keyed by it) and the tab name.
@@ -257,7 +293,7 @@ pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec {
             id: "kopano.export",
-            label: "Kopano Export",
+            label: "Collaboration Export",
             menu: &[],
             shortcut: None,
             params: r#"{} → {manifest, revision}"#,
@@ -267,7 +303,7 @@ pub fn specs() -> Vec<CommandSpec> {
         },
         CommandSpec {
             id: "kopano.objects",
-            label: "Kopano Objects",
+            label: "Collaboration Objects",
             menu: &[],
             shortcut: None,
             params: r#"{"hashes":[blake3 hex,…]} → {objects:{hash: base64 zstd}, more:[hash], missing:[hash]}"#,
@@ -277,7 +313,7 @@ pub fn specs() -> Vec<CommandSpec> {
         },
         CommandSpec {
             id: "kopano.stage",
-            label: "Kopano Stage",
+            label: "Collaboration Stage",
             menu: &[],
             shortcut: None,
             params: r#"{"objects":{blake3 hex: base64 zstd}} → {staged, bytes}"#,
@@ -287,7 +323,7 @@ pub fn specs() -> Vec<CommandSpec> {
         },
         CommandSpec {
             id: "kopano.import",
-            label: "Kopano Update",
+            label: "Teammate Update",
             menu: &[],
             shortcut: None,
             params: r#"{"manifest": .pcraft manifest, "revision": n? (refused if the document moved)} → {revision, fromStage, fromDocument} (one undo step)"#,
@@ -341,6 +377,44 @@ mod tests {
         s.execute("edit.undo", json!({})).unwrap();
         let d = s.execute("kopano.export", json!({})).unwrap();
         assert_eq!(d["manifest"]["document"]["layers"], a["manifest"]["document"]["layers"]);
+    }
+
+    #[test]
+    fn the_shared_document_is_the_target_never_the_one_in_front() {
+        let mut s = Session::new();
+        s.execute("file.new", json!({"width": 300, "height": 200, "background": "white"})).unwrap();
+        let shared = s.active().unwrap().doc.id.0;
+        let a = s.execute("kopano.export", json!({"doc": shared})).unwrap();
+        // another document comes to the front
+        s.execute("file.new", json!({"width": 64, "height": 64, "background": "black"})).unwrap();
+        let other = s.active().unwrap().doc.id.0;
+        assert_ne!(other, shared);
+        let b = s.execute("kopano.export", json!({"doc": shared})).unwrap();
+        assert_eq!(a["manifest"]["document"], b["manifest"]["document"], "export reads the shared document");
+        // an update for the shared document is refused while the other one is in front
+        let before = s.execute("kopano.export", json!({})).unwrap();
+        let r = s.execute("kopano.import", json!({"manifest": a["manifest"], "doc": shared}));
+        assert!(r.is_err(), "{r:?}");
+        assert_eq!(s.execute("kopano.export", json!({})).unwrap()["manifest"]["document"], before["manifest"]["document"], "the other document is untouched");
+        // a closed shared document is an error, not the active one
+        assert!(s.execute("kopano.export", json!({"doc": 987654321u64})).is_err());
+        // in front again, the update lands, as one plainly named undo step
+        let i = s.documents().iter().position(|d| d.doc.id.0 == shared).unwrap();
+        assert!(s.set_active(i));
+        s.execute("kopano.import", json!({"manifest": a["manifest"], "doc": shared})).unwrap();
+        assert_eq!(s.active().unwrap().history.undo_label().as_deref(), Some("Teammate Update"));
+    }
+
+    #[test]
+    fn the_bundle_cache_forgets_closed_documents() {
+        let mut s = Session::new();
+        s.execute("file.new", json!({"width": 64, "height": 64})).unwrap();
+        let first = s.active().unwrap().doc.id.0;
+        s.execute("kopano.export", json!({})).unwrap();
+        s.execute("file.close", json!({"force": true})).unwrap();
+        s.execute("file.new", json!({"width": 64, "height": 64})).unwrap();
+        s.execute("kopano.export", json!({})).unwrap();
+        assert!(with_state(|st| !st.docs.contains_key(&first)));
     }
 
     #[test]

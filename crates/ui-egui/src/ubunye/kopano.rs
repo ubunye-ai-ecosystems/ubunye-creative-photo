@@ -726,33 +726,50 @@ pub fn binding(port: u16, token_file: &Path) -> Value {
     json!({"kind": KIND, "port": port, "token_file": token_file.to_string_lossy()})
 }
 
-/// Where this app remembers which tiles a shared document holds, so that after a restart on a
-/// new control port it knows which shared documents are its own (`<home>/photo/<project>.json`).
+/// Where this app remembers which saved file a shared document is, so that after a restart on a
+/// new control port it can offer to link that file again (`<home>/photo/<project>.json`). Tile
+/// contents are no identity (a white background repeats everywhere).
 pub fn record_path(home: &Path, project: &str) -> Option<PathBuf> {
     is_hex_id(project).then(|| home.join("photo").join(format!("{project}.json")))
 }
 
-pub fn write_record(home: &Path, project: &str, tiles: &BTreeSet<String>) -> Result<(), String> {
+pub fn write_record(home: &Path, project: &str, file: &str) -> Result<(), String> {
     let f = record_path(home, project).ok_or("not a project id")?;
     if let Some(dir) = f.parent() {
         std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
     }
     let tmp = f.with_extension("json.tmp");
-    std::fs::write(&tmp, json!({"tiles": tiles}).to_string()).map_err(|e| e.to_string())?;
+    std::fs::write(&tmp, json!({"file": file}).to_string()).map_err(|e| e.to_string())?;
     std::fs::rename(&tmp, &f).map_err(|e| e.to_string())
 }
 
-/// The tiles recorded for `project` (content hashes); empty when there is no readable record.
-pub fn read_record(home: &Path, project: &str) -> BTreeSet<String> {
-    let Some(f) = record_path(home, project) else { return Default::default() };
-    let Ok(text) = std::fs::read_to_string(f) else { return Default::default() };
-    let v: Value = serde_json::from_str(&text).unwrap_or(Value::Null);
-    v.get("tiles").and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str).map(str::to_string).collect()
+/// The saved file recorded for `project`; none without a readable record (an old tile record
+/// included: those are not trusted).
+pub fn read_record(home: &Path, project: &str) -> Option<String> {
+    let text = std::fs::read_to_string(record_path(home, project)?).ok()?;
+    let v: Value = serde_json::from_str(&text).ok()?;
+    v.get("file").and_then(Value::as_str).filter(|f| !f.is_empty()).map(str::to_string)
 }
 
-/// This document holds a shared document when at least half of the tiles recorded for it are here.
-pub fn holds(recorded: &BTreeSet<String>, ours: &BTreeSet<String>) -> bool {
-    !recorded.is_empty() && recorded.intersection(ours).count().saturating_mul(2) >= recorded.len()
+/// What the window says about a problem: plain words, never a file path, the service's own
+/// words or the protocol's name (those stay in `kopano.status` and the log).
+pub fn plain(raw: &str) -> String {
+    let r = raw.to_lowercase();
+    let said = if r.contains("shared document is closed") {
+        "The shared document is closed. Open it again to keep working together."
+    } else if r.contains("not in front") {
+        "Bring the shared document to the front to get your teammate's changes."
+    } else if raw == NOT_RUNNING
+        || ["key file", "api.token", "bad token", "could not start", "connect", "refused", "timed out", "broken pipe", "reset"].iter().any(|w| r.contains(w))
+    {
+        "The collaboration service is not running. Restart Photo."
+    } else if raw.contains(['\\', '/']) || r.contains("kopano") || r.contains("op ") || r.contains("missing") || r.contains("unknown") || r.contains("error") {
+        "Something went wrong. Try again in a moment."
+    } else {
+        return raw.to_string();
+    };
+    log::info!("collaboration: {raw}");
+    said.to_string()
 }
 
 /// Every tile hash in a `kopano.export` manifest's `document` (objects with `tx` and `hash`).

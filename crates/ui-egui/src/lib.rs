@@ -744,6 +744,8 @@ impl PhotocraftApp {
 
     /// Run an engine command, reporting errors in the status bar.
     pub fn run(&mut self, id: &str, params: Value) -> Result<Value, String> {
+        // Ubunye: collaboration commands are for the shared document, not the one in front.
+        let params = ubunye::kopano_panel::pin_params(self, id, params);
         if let Some(result) = delete_layer_prompt::intercept(self, id, &params) {
             return result;
         }
