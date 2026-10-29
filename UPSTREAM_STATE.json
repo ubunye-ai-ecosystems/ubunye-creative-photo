@@ -7,7 +7,7 @@
     "branch": "main",
     "license": "MIT OR Apache-2.0"
   },
-  "last_checked_at": "2026-10-28T09:42:18Z",
+  "last_checked_at": "2026-10-29T10:00:00Z",
   "last_integrated": {
     "sha": "5bb768b8f16775431e7a6d49a77bb8fd79cc1be2",
     "date": "2026-10-10T13:09:05-04:00",
@@ -19,7 +19,7 @@
     "merged_at": null
   },
   "pending": {
-    "sha": "1f7fc0f53696e54da79b95015abb37d7c22cdd1a",
+    "sha": "5f9b4391874aabc9deb2fcb905267613e4d93ec8",
     "integration_branch": "integration/upstream",
     "status": "conflicts"
   },
