@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-14, windows-2022]
+        os: [ubuntu-22.04, macos-15, windows-2022]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     steps:
@@ -32,10 +32,47 @@ jobs:
       - name: Toolchain (rust-toolchain.toml)
         run: rustup show active-toolchain || rustup toolchain install
       - uses: Swatinem/rust-cache@v2         # TODO(M2): pin by SHA
+      # Upstream's all-language UI tests draw real CJK, Arabic and Devanagari labels and panic on a
+      # missing glyph, so tests run with craft-fonts at the revision upstream's CI pins.
+      - name: Fonts (craft-fonts)
+        shell: bash
+        run: |
+          git clone --quiet --no-checkout https://github.com/storytold/craft-fonts "$RUNNER_TEMP/craft-fonts"
+          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach b076417b5880bd4154bd22f00695b1d28c6bea83
+          echo "CRAFT_FONTS_DIR=$RUNNER_TEMP/craft-fonts" >>"$GITHUB_ENV"
+          echo "CRAFT_FONTS_REQUIRED=1" >>"$GITHUB_ENV"
+      - name: cargo-nextest 0.9.150 (the version .config/nextest.toml requires)
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            Linux) url=https://get.nexte.st/0.9.150/linux ;;
+            macOS) url=https://get.nexte.st/0.9.150/mac ;;
+            Windows) url=https://get.nexte.st/0.9.150/windows-tar ;;
+          esac
+          bin="${CARGO_HOME:-$HOME/.cargo}/bin"
+          mkdir -p "$bin" && echo "$bin" >>"$GITHUB_PATH"
+          curl -LsSf "$url" | tar zxf - -C "$bin"
+          "$bin/cargo-nextest" --version
       - name: Build
         run: cargo build --locked --workspace
+      # nextest with upstream's `ci` profile (.config/nextest.toml): one process per test and at
+      # most four GPU devices at once; `cargo test` ran the GPU tests on one shared device.
       - name: Test
-        run: cargo test --locked --workspace --no-fail-fast
+        shell: bash
+        run: |
+          # Tests that also fail on unmodified upstream with these same steps on this runner are
+          # skipped on that OS only; ubunye/ci/upstream-failures-<os>.txt lists them with the
+          # baseline run that shows it (lines: <binary id> <test path>, as nextest prints them).
+          os=$(echo "$RUNNER_OS" | tr '[:upper:]' '[:lower:]')
+          f="ubunye/ci/upstream-failures-$os.txt"
+          filter=()
+          if [ -f "$f" ]; then
+            expr=$(tr -d '\r' <"$f" | grep -v '^#' | awk 'NF==2 {printf "%s(binary_id(=%s) & test(=%s))", (n++ ? " | " : ""), $1, $2}')
+            if [ -n "$expr" ]; then filter=(-E "not ($expr)"); echo "skipping upstream-only failures: $expr"; fi
+          fi
+          cargo nextest run --profile ci --locked --workspace "${filter[@]}"
+      - name: Doctests
+        run: cargo test --locked --workspace --doc
       - name: Smoke (import → edit → save → reopen → export)
         if: runner.os != 'Windows' && hashFiles('ubunye/scripts/smoke.sh') != ''
         run: bash ubunye/scripts/smoke.sh "$PWD/target/debug/photocraft-cli" "$RUNNER_TEMP/smoke"
@@ -50,6 +87,15 @@ jobs:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev libwayland-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libgtk-3-dev
       - uses: Swatinem/rust-cache@v2
+      # Upstream's all-language UI tests draw real CJK, Arabic and Devanagari labels and panic on a
+      # missing glyph, so tests run with craft-fonts at the revision upstream's CI pins.
+      - name: Fonts (craft-fonts)
+        shell: bash
+        run: |
+          git clone --quiet --no-checkout https://github.com/storytold/craft-fonts "$RUNNER_TEMP/craft-fonts"
+          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach b076417b5880bd4154bd22f00695b1d28c6bea83
+          echo "CRAFT_FONTS_DIR=$RUNNER_TEMP/craft-fonts" >>"$GITHUB_ENV"
+          echo "CRAFT_FONTS_REQUIRED=1" >>"$GITHUB_ENV"
       - run: cargo xtask ci
 
   brand-leak:

@@ -33,7 +33,7 @@ env:
   # craft-fonts (https://github.com/storytold/craft-fonts): shared font assets every release
   # embeds (today the Japanese fonts). An optional build input for everyone else; see
   # docs/development.md › Fonts. Bump deliberately; every desktop build job checks out this commit (not web).
-  CRAFT_FONTS_REF: abb83316d96aa59c1cf64784289e378fe9fa5695
+  CRAFT_FONTS_REF: b076417b5880bd4154bd22f00695b1d28c6bea83
 
 jobs:
   version:

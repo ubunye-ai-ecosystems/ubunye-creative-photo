@@ -2,7 +2,7 @@
 # service; slice S4) inside: one download per operating system, as workflow artifacts.
 #   Windows x64: MSI (per-machine; kopanod.exe shared in Program Files\ThabangVision\Collaboration)
 #                + portable zip (kopanod.exe beside photocraft.exe)
-#   macOS:       DMG, kopanod inside PhotoCraft.app/Contents/MacOS (universal)
+#   macOS:       DMG, kopanod inside Ubunye Photo.app/Contents/MacOS (universal)
 #   Linux x86_64: AppImage, .deb, .rpm, .tar.gz (deb/rpm: /usr/lib/photocraft/kopanod, shared
 #                through update-alternatives as /usr/bin/kopanod)
 # Each job also installs and removes its package for real (one app); the test with two apps
@@ -19,7 +19,7 @@ on:
         type: string
         default: f5ff0bfd03cfedf945f9e27869b0814bb7c93cf4
   push:
-    branches: [feature/kopano-panel]
+    branches: [develop, feature/kopano-panel, "sync/**"]
     paths:
       - ubunye/packaging/**
       - packaging/**
@@ -48,6 +48,16 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+      # Embedded fonts at upstream's pin (its release.yml and ci.yml): without them the app panics
+      # drawing CJK, Arabic or Devanagari on machines lacking such a system font. REQUIRED makes
+      # the build fail rather than ship without them.
+      - name: Fonts (craft-fonts)
+        shell: bash
+        run: |
+          git clone --quiet --no-checkout https://github.com/storytold/craft-fonts "$RUNNER_TEMP/craft-fonts"
+          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach b076417b5880bd4154bd22f00695b1d28c6bea83
+          echo "CRAFT_FONTS_DIR=$RUNNER_TEMP/craft-fonts" >>"$GITHUB_ENV"
+          echo "CRAFT_FONTS_REQUIRED=1" >>"$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           repository: ubunye-ai-ecosystems/ubunye-creative-studio-tools
@@ -121,6 +131,16 @@ jobs:
     timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
+      # Embedded fonts at upstream's pin (its release.yml and ci.yml): without them the app panics
+      # drawing CJK, Arabic or Devanagari on machines lacking such a system font. REQUIRED makes
+      # the build fail rather than ship without them.
+      - name: Fonts (craft-fonts)
+        shell: bash
+        run: |
+          git clone --quiet --no-checkout https://github.com/storytold/craft-fonts "$RUNNER_TEMP/craft-fonts"
+          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach b076417b5880bd4154bd22f00695b1d28c6bea83
+          echo "CRAFT_FONTS_DIR=$RUNNER_TEMP/craft-fonts" >>"$GITHUB_ENV"
+          echo "CRAFT_FONTS_REQUIRED=1" >>"$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           repository: ubunye-ai-ecosystems/ubunye-creative-studio-tools
@@ -149,7 +169,7 @@ jobs:
         run: ubunye/packaging/macos/collab-package.sh kopano-src/research/kopano/lab --arch universal
       - name: Check the app holds kopanod
         run: |
-          app="target/macos-package/PhotoCraft.app"
+          app="target/macos-package/Ubunye Photo.app"
           lipo -info "$app/Contents/MacOS/kopanod"
           echo "kopanod.version: $(cat "$app/Contents/Resources/kopanod.version")"
           codesign --verify --strict --deep --verbose=2 "$app"
@@ -170,6 +190,16 @@ jobs:
       NFPM_VERSION: 2.47.0
     steps:
       - uses: actions/checkout@v4
+      # Embedded fonts at upstream's pin (its release.yml and ci.yml): without them the app panics
+      # drawing CJK, Arabic or Devanagari on machines lacking such a system font. REQUIRED makes
+      # the build fail rather than ship without them.
+      - name: Fonts (craft-fonts)
+        shell: bash
+        run: |
+          git clone --quiet --no-checkout https://github.com/storytold/craft-fonts "$RUNNER_TEMP/craft-fonts"
+          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach b076417b5880bd4154bd22f00695b1d28c6bea83
+          echo "CRAFT_FONTS_DIR=$RUNNER_TEMP/craft-fonts" >>"$GITHUB_ENV"
+          echo "CRAFT_FONTS_REQUIRED=1" >>"$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           repository: ubunye-ai-ecosystems/ubunye-creative-studio-tools

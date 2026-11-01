@@ -1,5 +1,5 @@
 //! ⌥-click through the real canvas: the Brush's temporary Eyedropper (#1659) and the Clone
-//! Stamp's source point and painting (#1658).
+//! Stamp's source point and painting (#1658), the Zoom tool's Zoom Out (#3137).
 
 use egui::{Modifiers, PointerButton, Pos2, vec2};
 use egui_kittest::Harness;
@@ -40,6 +40,7 @@ fn screen(h: &Harness<'static, PhotocraftApp>, x: f32, y: f32) -> Pos2 {
         center: v.center,
         flip: app.ui.view.flip_horizontal,
         rotation: v.rotation,
+        aspect: app.ui.view.display_aspect(),
     };
     xf.to_screen(x, y)
 }
@@ -110,6 +111,87 @@ fn alt_click_with_the_brush_samples_the_foreground() {
     assert_eq!(h.state().session.tools.foreground, [0.0, 1.0, 0.0, 1.0], "⌥-click sampled green");
 }
 
+/// Alt-click sampling respects the canvas view transform without changing document pixels.
+#[test]
+fn mixer_alt_click_samples_the_tip_through_zoomed_rotated_canvas_input() {
+    for (zoom, rotation) in [(0.5, 0.0), (1.0, 0.0), (2.0, 30.0)] {
+        let mut app = two_colours();
+        app.run("layer.new.layer", json!({})).unwrap();
+        app.run(
+            "tools.setBrush",
+            json!({"brush":{"size":24,"roundness":0.4,"hardness":1.0,"pressureSize":false,"mixer":{"wet":0.0,"mix":0.0,"sampleAllLayers":true}}}),
+        )
+        .unwrap();
+        let mut h = harness(app);
+        h.state_mut().ui.tool = Tool::MixerBrush;
+        h.state_mut().ui.views[0].zoom = zoom;
+        h.state_mut().ui.views[0].rotation = rotation;
+        h.run_steps(2);
+        let before = h.state().session.active().unwrap().doc.clone();
+        let steps = h.state().session.active().unwrap().history.past_len();
+        click(&mut h, 100.0, 50.0, Modifiers::ALT);
+        let state = &h.state().session.tools.mixer;
+        let load = state.spatial.as_ref().expect("Alt loads a spatial brush tip");
+        assert!(load.iter().any(|c| c[0] > 0.9 && c[1] < 0.1 && c[3] > 0.9));
+        assert!(load.iter().any(|c| c[1] > 0.9 && c[0] < 0.1 && c[3] > 0.9));
+        assert!(std::sync::Arc::ptr_eq(&before, &h.state().session.active().unwrap().doc));
+        assert_eq!(h.state().session.active().unwrap().history.past_len(), steps);
+        click(&mut h, 40.0, 50.0, Modifiers::NONE);
+        let st = h.state().session.active().unwrap();
+        let surface = st.doc.layer(st.active_layer.unwrap()).unwrap().surface().unwrap();
+        assert!(surface.rgba(34, 50)[0] > 0.9 && surface.rgba(46, 50)[1] > 0.9, "loaded halves follow document coordinates at {zoom}x/{rotation}°");
+        assert_eq!(st.history.past_len(), steps + 1);
+        assert!(crate::alt_grab::alt_click_tool(Tool::MixerBrush, Modifiers::ALT));
+        assert!(!crate::alt_grab::alt_click_tool(Tool::MixerBrush, Modifiers::ALT | Modifiers::CTRL));
+    }
+}
+
+/// Native pointer release commits the shown mixer result before restoring a spring-loaded tool.
+#[test]
+fn mixer_raw_drag_commits_live_pixels_before_a_spring_tool_returns() {
+    for spring in [false, true] {
+        let mut app = two_colours();
+        app.run("layer.new.layer", json!({})).unwrap();
+        app.run("tools.setColors", json!({"foreground":"#0000ff"})).unwrap();
+        app.run(
+            "tools.setBrush",
+            json!({"brush":{"size":24,"pressureSize":false,"mixer":{"wet":1.0,"mix":0.5,"sampleAllLayers":true},"smoothing":{"amount":0.0}}}),
+        )
+        .unwrap();
+        let mut h = harness(app);
+        h.state_mut().ui.tool = Tool::MixerBrush;
+        let before = h.state().session.active().unwrap().doc.clone();
+        let steps = h.state().session.active().unwrap().history.past_len();
+        let start = screen(&h, 40.0, 50.0);
+        h.event(egui::Event::PointerMoved(start));
+        h.run_steps(1);
+        button(&mut h, start, true, Modifiers::NONE);
+        if spring {
+            // A temporary Mixer Brush's key was released while its mouse drag is held.
+            h.state_mut().ui.spring =
+                Some(crate::spring_tools::Spring { previous: Tool::Zoom, tool: Tool::MixerBrush, keys: vec![], since: 0.0, used: true, released: true });
+        }
+        let end = screen(&h, 80.0, 50.0);
+        h.event(egui::Event::PointerMoved(end));
+        h.run_steps(2);
+        assert_eq!(h.state().ui.tool, Tool::MixerBrush);
+        let shown = crate::canvas::display_doc(h.state_mut(), 0).0;
+        let id = h.state().session.active().unwrap().active_layer.unwrap();
+        let paint = shown.layer(id).unwrap().surface().unwrap();
+        let mixed = paint.rgba(60, 50);
+        assert!(mixed[0] > 0.0 && mixed[2] > 0.0 && mixed[3] > 0.0, "real red/blue mixing while held: {mixed:?}");
+        assert!(std::sync::Arc::ptr_eq(&before, &h.state().session.active().unwrap().doc));
+        button(&mut h, end, false, Modifiers::NONE);
+        h.run_steps(2);
+        let st = h.state().session.active().unwrap();
+        assert_eq!(st.doc.layer(id).unwrap().surface().unwrap(), paint);
+        assert_eq!(st.history.past_len(), steps + 1);
+        assert_eq!(h.state().ui.tool, if spring { Tool::Zoom } else { Tool::MixerBrush });
+        h.state_mut().run("edit.undo", json!({})).unwrap();
+        assert_eq!(*h.state().session.active().unwrap().doc, *before);
+    }
+}
+
 #[test]
 fn alt_click_sets_the_clone_source_and_a_drag_paints_it() {
     let mut h = harness(two_colours());
@@ -178,7 +260,7 @@ fn grabbed_alt_click(h: &mut Harness<'static, PhotocraftApp>, x: f32, y: f32, re
 
 #[test]
 fn an_alt_click_the_window_manager_took_says_so() {
-    for tool in [Tool::Brush, Tool::Pencil, Tool::CloneStamp, Tool::Healing] {
+    for tool in [Tool::Brush, Tool::Pencil, Tool::CloneStamp, Tool::Healing, Tool::Zoom] {
         let mut h = harness(two_colours());
         h.state_mut().ui.tool = tool;
         grabbed_alt_click(&mut h, 50.0, 50.0, true);
@@ -227,4 +309,36 @@ fn a_latched_alt_samples_and_sets_the_clone_source_without_the_key() {
     h.state_mut().ui.tool = Tool::CloneStamp;
     click(&mut h, 150.0, 50.0, Modifiers::NONE);
     assert!(h.state().session.presets.clone.active().source.is_some());
+}
+
+#[test]
+fn alt_click_with_the_zoom_tool_zooms_out_held_or_latched() {
+    for (sticky, scrubby, m) in [(false, true, Modifiers::ALT), (true, true, Modifiers::NONE), (true, false, Modifiers::NONE)] {
+        let mut h = harness(two_colours());
+        h.state_mut().ui.tool = Tool::Zoom;
+        h.state_mut().ui.tool_options.zoom_scrubby = scrubby;
+        h.state_mut().ui.shell.sticky_alt = sticky;
+        click(&mut h, 50.0, 50.0, m);
+        assert_eq!(h.state().ui.views[0].zoom, 2.0 / 3.0, "sticky={sticky} scrubby={scrubby}");
+        // Without ⌥ the click zooms in again.
+        h.state_mut().ui.shell.sticky_alt = false;
+        click(&mut h, 50.0, 50.0, Modifiers::NONE);
+        assert_eq!(h.state().ui.views[0].zoom, 1.0, "sticky={sticky} scrubby={scrubby}");
+    }
+}
+
+#[test]
+fn alt_click_with_the_mixer_brush_loads_the_reservoir_not_the_foreground() {
+    let mut h = harness(two_colours());
+    h.state_mut().ui.tool = Tool::MixerBrush;
+    h.state_mut().run("tools.setColors", json!({"foreground": [0.0, 0.0, 1.0, 1.0]})).unwrap();
+    let rev = h.state().session.active().unwrap().revision;
+    assert!(h.state().session.tools.mixer.reservoir.is_none());
+    click(&mut h, 50.0, 50.0, Modifiers::ALT);
+    assert_eq!(h.state().session.tools.mixer.reservoir, Some([1.0, 0.0, 0.0, 1.0]), "⌥-click loaded red into the reservoir");
+    assert_eq!(h.state().session.tools.foreground, [0.0, 0.0, 1.0, 1.0], "the foreground colour is unchanged");
+    assert_eq!(h.state().session.active().unwrap().revision, rev, "nothing was painted");
+    click(&mut h, 150.0, 50.0, Modifiers::ALT);
+    assert_eq!(h.state().session.tools.mixer.reservoir, Some([0.0, 1.0, 0.0, 1.0]), "⌥-click loaded green");
+    assert_eq!(h.state().session.tools.foreground, [0.0, 0.0, 1.0, 1.0]);
 }

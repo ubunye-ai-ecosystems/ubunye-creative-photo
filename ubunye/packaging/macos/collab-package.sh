@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Ubunye Photo for macOS with ThabangVision collaboration (kopanod) inside the app:
-# PhotoCraft.app/Contents/MacOS/kopanod (Finder shows Ubunye Photo), signed with the app (inside out) by
+# Ubunye Photo.app/Contents/MacOS/kopanod, signed with the app (inside out) by
 # packaging/macos/package.sh, and its version in Contents/Resources/kopanod.version.
 #
 # kopanod is shared by Ubunye Light, Photo and Film and a Mac runs one: the LaunchAgent

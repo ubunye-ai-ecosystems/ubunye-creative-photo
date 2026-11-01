@@ -38,7 +38,18 @@ fn app() -> (PhotocraftApp, LayerId, LayerId) {
     app.ui.view.extras = true;
     app.ui.view.show.layer_edges = true;
     // 4 screen px per document px, the document centred.
-    app.ui.views = vec![View { zoom: 4.0, center: [32.0, 32.0], fit_pending: false, fill_pending: false, doc_size: [64, 64], rotation: 0.0 }];
+    app.ui.views = vec![View {
+        zoom: 4.0,
+        center: [32.0, 32.0],
+        fit_pending: false,
+        fill_pending: false,
+        doc_size: [64, 64],
+        rotation: 0.0,
+        zoom_animating: false,
+        zoom_anchor: None,
+        display_camera: None,
+        zoom_transition: None,
+    }];
     (app, ids[0], ids[1])
 }
 
@@ -57,7 +68,7 @@ fn harness(app: PhotocraftApp) -> Harness<'static, PhotocraftApp> {
 
 fn xf(app: &PhotocraftApp) -> ViewXform {
     let v = &app.ui.views[0];
-    ViewXform { rect: app.last_canvas_rect, zoom: v.zoom / app.ppp, center: v.center, flip: false, rotation: 0.0 }
+    ViewXform { rect: app.last_canvas_rect, zoom: v.zoom / app.ppp, center: v.center, flip: false, rotation: 0.0, aspect: 1.0 }
 }
 
 /// The screen point of document point `p`.

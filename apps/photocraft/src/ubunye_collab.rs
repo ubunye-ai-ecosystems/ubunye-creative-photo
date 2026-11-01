@@ -305,10 +305,11 @@ fn per_user(mine: PathBuf, home: &Path, port: u16, cfg: &(PathBuf, u16)) -> (Pat
     if let Some(entry) = &entry {
         if cfg!(target_os = "macos") {
             // another Ubunye app's kopanod is as good when it is there and at least as new
-            if let Some(theirs) = plist_program(entry).filter(|p| p.is_file()) {
-                if entry_points_at(entry, &theirs, home, port) && bundled_version(&theirs) >= bundled_version(&mine) {
-                    return (theirs, AtSignIn::PerUser);
-                }
+            if let Some(theirs) = plist_program(entry).filter(|p| p.is_file())
+                && entry_points_at(entry, &theirs, home, port)
+                && bundled_version(&theirs) >= bundled_version(&mine)
+            {
+                return (theirs, AtSignIn::PerUser);
             }
         } else if entry_points_at(entry, &mine, home, port) {
             return (mine, AtSignIn::PerUser);
@@ -426,7 +427,7 @@ pub fn start_control(existing: Option<(u16, String, Option<PathBuf>)>, home: Opt
         let token_file = token_path(home.as_deref(), port)?;
         write_token(&token_file, &token)?;
         install_gates(services);
-        let rx = crate::control_server::start_on(listener, token, ctx.clone());
+        let rx = crate::control_server::start(listener, token, ctx.clone());
         log::info!("collaboration: control server started on 127.0.0.1:{port} for the collaboration service");
         Ok(Started { link: ControlLink { port, token_file }, rx: Some(rx) })
     })

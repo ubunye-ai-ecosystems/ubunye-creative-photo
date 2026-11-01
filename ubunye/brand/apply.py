@@ -119,7 +119,7 @@ def id_scope() -> list[Path]:
     files = walk("packaging", suffixes=TEXT_SUFFIXES + ("AppRun",))
     files += [p for p in walk("packaging/linux") if p.name == "AppRun"]
     files += rust_files()
-    files += walk("apps/photocraft-web/index.html", ".github/workflows/release.yml", ".github/workflows/packaging-lint.yml")
+    files += walk("apps/photocraft-web/index.html", "apps/photocraft-web-boot/index.html", ".github/workflows/release.yml", ".github/workflows/packaging-lint.yml")
     # The DMG artwork is an open item (see REBRANDING.md); its README is upstream documentation.
     files = [p for p in files if not rel(p).startswith("packaging/macos/dmg/") and rel(p) not in CREDIT_FILES]
     return sorted(set(files))
@@ -173,6 +173,8 @@ ID_RULES = [
     (r"https://discord\.gg/artcraft", COMMUNITY),
     (r"https://github\.com/storytold/photocraft/issues", ISSUES),
     (r"raw\.githubusercontent\.com/storytold/photocraft/", f"raw.githubusercontent.com/{REPO}/"),
+    (r"https://github\.com/storytold/photocraft/releases", SOURCE + "/releases"),
+    (r"ghcr\.io/storytold/photocraft", "ghcr.io/" + REPO),
     (r"https://github\.com/storytold/photocraft(?![-\w/])", SOURCE),
 ]
 
@@ -187,28 +189,32 @@ EXACT_RULES = [
     # Windows resources of both executables.
     ("apps/photocraft/build.rs", '"Copyright (c) the PhotoCraft authors. MIT OR Apache-2.0."', f'"Copyright (c) the PhotoCraft authors and {VENDOR}. MIT OR Apache-2.0."'),
     ("apps/photocraft-cli/build.rs", '"Copyright (c) the PhotoCraft authors. MIT OR Apache-2.0."', f'"Copyright (c) the PhotoCraft authors and {VENDOR}. MIT OR Apache-2.0."'),
-    # --help / --version name the product (the binaries keep their upstream names).
-    ("apps/photocraft-cli/src/lib.rs", "photocraft-cli: headless Photocraft\n", f"photocraft-cli: headless {NAME} (based on PhotoCraft)\n"),
-    ("apps/photocraft-cli/src/lib.rs", 'writeln!(out, "photocraft-cli {}", ', f'writeln!(out, "photocraft-cli {{}} ({NAME}, based on PhotoCraft)", '),
-    ("apps/photocraft/src/main.rs", 'println!("photocraft {}", ', f'println!("photocraft {{}} ({NAME}, based on PhotoCraft)", '),
-    # Settings live in a directory of our own, so an installed upstream copy never shares them.
+    # --help names the product (the binaries keep their upstream names). Since upstream v0.18 clap
+    # prints --version from build_info and upstream's tests pin that text, so --version is upstream's.
+    ("apps/photocraft-cli/src/args.rs", "/// photocraft-cli: headless PhotoCraft\n", f"/// photocraft-cli: headless {NAME} (based on PhotoCraft)\n"),
+    # Settings and recovery live in directories of our own, so an installed upstream copy never shares them.
     ("apps/photocraft/src/app_dirs.rs", '"Library/Application Support/Photocraft"', f'"Library/Application Support/{APP_ID}"'),
-    ("apps/photocraft/src/app_dirs.rs", '"home/Library/Application Support/Photocraft"', f'"home/Library/Application Support/{APP_ID}"'),
     ("apps/photocraft/src/app_dirs.rs", 'PathBuf::from(a).join("Photocraft")', f'PathBuf::from(a).join("{APP_ID}")'),
-    ("apps/photocraft/src/app_dirs.rs", 'root.join("appdata").join("Photocraft")', f'root.join("appdata").join("{APP_ID}")'),
     ("apps/photocraft/src/app_dirs.rs", '.map(|c| c.join("photocraft"))', f'.map(|c| c.join("{APP_ID}"))'),
-    ("apps/photocraft/src/app_dirs.rs", '"home/.config/photocraft"', f'"home/.config/{APP_ID}"'),
+    ("apps/photocraft/src/app_dirs.rs", 'PathBuf::from(local).join("Photocraft").join(RECOVERY)', f'PathBuf::from(local).join("{APP_ID}").join(RECOVERY)'),
+    ("apps/photocraft/src/app_dirs.rs", 'state.join("photocraft").join(RECOVERY)', f'state.join("{APP_ID}").join(RECOVERY)'),
+    ("apps/photocraft/src/app_dirs/tests.rs", '"home/Library/Application Support/Photocraft"', f'"home/Library/Application Support/{APP_ID}"'),
+    ("apps/photocraft/src/app_dirs/tests.rs", 'root.join("appdata").join("Photocraft")', f'root.join("appdata").join("{APP_ID}")'),
+    ("apps/photocraft/src/app_dirs/tests.rs", '"home/.config/photocraft"', f'"home/.config/{APP_ID}"'),
+    ("apps/photocraft/src/app_dirs/tests.rs", 'local.join("Photocraft").join("Recovery")', f'local.join("{APP_ID}").join("Recovery")'),
+    ("apps/photocraft/src/app_dirs/tests.rs", 'root.join("local").join("Photocraft")', f'root.join("local").join("{APP_ID}")'),
+    ("apps/photocraft/src/app_dirs/tests.rs", 'join(".config").join("photocraft")', f'join(".config").join("{APP_ID}")'),
+    ("apps/photocraft/src/app_dirs/tests.rs", 'state.join("photocraft").join("Recovery")', f'state.join("{APP_ID}").join("Recovery")'),
+    ("apps/photocraft/src/app_dirs/tests.rs", 'join("state").join("photocraft")', f'join("state").join("{APP_ID}")'),
     ("apps/photocraft/src/app_dirs.rs", '"PhotoCraft.portable"', '"UbunyeCreativePhoto.portable"'),
     ("apps/photocraft/src/app_dirs.rs", '"PhotoCraftData"', f'"{DATA_DIR}"'),
     ("apps/photocraft/src/services.rs", "`<exe dir>/PhotoCraftData`", f"`<exe dir>/{DATA_DIR}`"),
-    # Help menu, title bar and their tests: upstream's Discord and ArtCraft links.
-    ("crates/ui-egui/src/menus.rs", '"Join the ArtCraft Discord…"', '"Join the Community…"'),
-    ("crates/ui-egui/src/menus.rs", '("help.artcraftWebsite", "ArtCraft Website",', '("help.artcraftWebsite", "Upstream PhotoCraft Project",'),
-    ("crates/ui-egui/src/panels.rs", 'tl!("Discord")', 'tl!("Community")'),
-    ("crates/ui-egui/src/panels.rs", 'format!("Join the ArtCraft Discord ({})"', 'format!("Join the Community ({})"'),
-    ("crates/ui-egui/src/titlebar.rs", 't == "Discord"', 't == "Community"'),
+    # Help menu: upstream's Discord and ArtCraft links (upstream v0.18 dropped the title-bar button).
+    ("crates/engine/src/shell_commands.rs", '"Join the ArtCraft Discord…"', '"Join the Community…"'),
+    ("crates/engine/src/shell_commands.rs", '("help.artcraftWebsite", "ArtCraft Website",', '("help.artcraftWebsite", "Upstream PhotoCraft Project",'),
     # Web build: favicon from our icon.
     ("apps/photocraft-web/index.html", "  <title>PhotoCraft</title>\n", f'  <title>{NAME}</title>\n  <link data-trunk rel="icon" type="image/svg+xml" href="../../assets/app-icon/photocraft.svg" />\n'),
+    ("apps/photocraft-web-boot/index.html", "  <title>PhotoCraft</title>\n", f'  <title>{NAME}</title>\n  <link data-trunk rel="icon" type="image/svg+xml" href="../../assets/app-icon/photocraft.svg" />\n'),
     # Linux.
     (f"{LINUX}/{APP_ID}.desktop", "Name=PhotoCraft\n", f"Name={NAME}\n"),
     (f"{LINUX}/{APP_ID}.desktop", "StartupWMClass=photocraft\n", f"StartupWMClass={APP_ID}\n"),
@@ -221,7 +227,6 @@ EXACT_RULES = [
         '  REPO="${GITHUB_REPOSITORY:-storytold/photocraft}"\n  UPDATE_INFO="gh-releases-zsync|${REPO%%/*}|${REPO#*/}|latest|photocraft-*-linux-$ARCH.AppImage.zsync"\n',
         f'  # Ubunye: updates come from our own download host, never from upstream\'s GitHub releases.\n  # Publishing must upload this .zsync (and its AppImage) under the stable name below.\n  UPDATE_INFO="zsync|{UPDATES}ubunye-creative-photo-linux-$ARCH.AppImage.zsync"\n',
     ),
-    (".github/workflows/release.yml", "grep -F 'gh-releases-zsync|'", f"grep -F 'zsync|{UPDATES}'"),
     # Windows installer.
     (WXS, 'UpgradeCode="D9660F32-2D0A-4ABE-B73D-17BE25F1542C"', f'UpgradeCode="{UPGRADE_CODE}"'),
     (WXS, 'Guid="A6DE41B7-A80F-4C59-A17E-BB68065BF67E"', f'Guid="{MSI_COMPONENT_GUID}"'),
@@ -238,7 +243,7 @@ EXACT_RULES = [
 ]
 
 # Files where every remaining product name in the file is user-visible (after EXACT_RULES).
-PRODUCT_FILES = [WXS, "packaging/windows/portable.txt", "apps/photocraft-web/index.html"]
+PRODUCT_FILES = [WXS, "packaging/windows/portable.txt", "apps/photocraft-web/index.html", "apps/photocraft-web-boot/index.html"]
 
 # ---------------------------------------------------------------------------------------------
 # 4. Product name in Rust and the catalogs
@@ -254,6 +259,7 @@ KEEP_LINE = re.compile(
             r"PhotoCraft (authors|contributors|team)\b",
             r"\.PhotoCraft-face-",  # internal font alias
             r"PhotoCraft Studio CMYK",  # test fixture
+            r"PhotoCraft Coated CMYK",  # baked ICC profile description (crates/cms/profiles), read back by tests
             r"PhotoCraft projects",  # test fixture (folder name)
             r"PhotoCraft é世界",  # test fixture (type layer text)
             r"PhotoCraft transform preview",  # test fixture
@@ -276,6 +282,16 @@ def brand_rust_line(line: str) -> str:
     return PRODUCT.sub(NAME, line)
 
 
+# Catalog rows upstream keeps but no code reads any more (the title-bar Discord button went in
+# v0.18); they name upstream's community, so they are dropped rather than rebranded.
+DROP_SOURCES = {"Join the ArtCraft Discord ({url})"}
+
+
+def drop_dead_rows(text: str) -> str:
+    nl = eol(text)
+    return nl.join(line for line in text.split(nl) if not (line.count("\t") == 2 and line.split("\t")[1] in DROP_SOURCES))
+
+
 def brand_tsv_line(line: str) -> str:
     if line.startswith("#") or "\t" not in line:
         return line
@@ -290,7 +306,7 @@ def brand_tsv_line(line: str) -> str:
 #    translations). A row with an old source is rewritten in place; otherwise the row is appended.
 # ---------------------------------------------------------------------------------------------
 
-LANGS = ["ja", "zh-hans", "zh-hant", "es", "ru", "uk", "cs", "fr", "id", "ko", "pl", "de", "pt-br", "el", "nl", "it"]
+LANGS = ["ja", "zh-hans", "zh-hant", "es", "ru", "uk", "cs", "fr", "id", "ko", "pl", "de", "pt-br", "el", "nl", "it"]  # see MORE_LANGS below
 
 
 def row(*t: str) -> dict[str, str]:
@@ -370,6 +386,21 @@ OVERLAY = [
         ),
     ),
 ]
+
+
+# Languages upstream added after the overlay rows above were written (v0.18.0 catalogs).
+MORE_LANGS = ["ar", "da", "fi", "hi", "hu", "nb", "sr", "sv", "tr", "vi"]
+OVERLAY_MORE = {
+    "Join the Community…": ["انضم إلى المجتمع…", "Bliv en del af fællesskabet…", "Liity yhteisöön…", "समुदाय से जुड़ें…", "Csatlakozás a közösséghez…", "Bli med i fellesskapet…", "Pridruži se zajednici…", "Gå med i communityn…", "Topluluğa katıl…", "Tham gia cộng đồng…"],
+    "Join the Community": ["انضم إلى المجتمع", "Bliv en del af fællesskabet", "Liity yhteisöön", "समुदाय से जुड़ें", "Csatlakozz a közösséghez", "Bli med i fellesskapet", "Pridruži se zajednici", "Gå med i communityn", "Topluluğa katılın", "Tham gia cộng đồng"],
+    "Community": ["المجتمع", "Fællesskab", "Yhteisö", "समुदाय", "Közösség", "Fellesskap", "Zajednica", "Community", "Topluluk", "Cộng đồng"],
+    "Upstream PhotoCraft Project": ["مشروع PhotoCraft الأصلي", "Det oprindelige PhotoCraft-projekt", "Alkuperäinen PhotoCraft-projekti", "मूल PhotoCraft परियोजना", "Az eredeti PhotoCraft projekt", "Det opprinnelige PhotoCraft-prosjektet", "Izvorni PhotoCraft projekat", "Det ursprungliga PhotoCraft-projektet", "Asıl PhotoCraft projesi", "Dự án PhotoCraft gốc"],
+    "Based on PhotoCraft by the ArtCraft team": ["مبني على PhotoCraft من فريق ArtCraft", "Baseret på PhotoCraft fra ArtCraft-teamet", "Perustuu ArtCraft-tiimin PhotoCraftiin", "ArtCraft टीम के PhotoCraft पर आधारित", "Az ArtCraft csapat PhotoCraft programján alapul", "Basert på PhotoCraft fra ArtCraft-teamet", "Zasnovano na PhotoCraft-u tima ArtCraft", "Baserad på PhotoCraft från ArtCraft-teamet", "ArtCraft ekibinin PhotoCraft uygulamasına dayanır", "Dựa trên PhotoCraft của nhóm ArtCraft"],
+    "{name}, part of {suite}.": ["{name}، جزء من {suite}.", "{name}, en del af {suite}.", "{name}, osa kokonaisuutta {suite}.", "{name}, {suite} का हिस्सा।", "{name}, a(z) {suite} része.", "{name}, en del av {suite}.", "{name}, deo paketa {suite}.", "{name}, en del av {suite}.", "{name}, {suite} ailesinin bir parçası.", "{name}, một phần của {suite}."],
+    "License: MIT OR Apache-2.0": ["الترخيص: MIT OR Apache-2.0", "Licens: MIT OR Apache-2.0", "Lisenssi: MIT OR Apache-2.0", "लाइसेंस: MIT OR Apache-2.0", "Licenc: MIT OR Apache-2.0", "Lisens: MIT OR Apache-2.0", "Licenca: MIT OR Apache-2.0", "Licens: MIT OR Apache-2.0", "Lisans: MIT OR Apache-2.0", "Giấy phép: MIT OR Apache-2.0"],
+}
+for _olds, _new, _tr in OVERLAY:
+    _tr.update(dict(zip(MORE_LANGS, OVERLAY_MORE[_new], strict=True)))
 
 
 def former_name_scope() -> list[Path]:
@@ -633,7 +664,7 @@ def apply(force_icons: bool) -> int:
             continue
         nl = eol(text)
         out = nl.join(brand_tsv_line(line) for line in text.split(nl))
-        out = apply_overlay(out, p.stem)
+        out = apply_overlay(drop_dead_rows(out), p.stem)
         if out != text:
             write(p, out)
             log.append(f"catalog: {rel(p)}")
@@ -666,7 +697,8 @@ def apply(force_icons: bool) -> int:
 
 LEAK = re.compile(r"getartcraft|discord\.gg/artcraft|ai\.storyteller|Learning Machines|storytold/photocraft(?!-corpus)|artcraft-(logo|mark)")
 # Files where these leaks are expected: licences, notices, upstream history and documentation.
-LEAK_ALLOWED_FILES = CREDIT_FILES
+# external_svg.rs finds an installed upstream VectorCraft (a separate app) by its own bundle id.
+LEAK_ALLOWED_FILES = CREDIT_FILES | {"apps/photocraft/src/external_svg.rs"}
 README_MARKER = "<!-- ubunye: upstream README below -->"
 
 

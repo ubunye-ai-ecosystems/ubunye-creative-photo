@@ -7,7 +7,7 @@ people only ever see "ThabangVision collaboration").
 | System | Download | Where kopanod goes | Start at sign-in | Removed by |
 |---|---|---|---|---|
 | Windows | `.msi` (and a portable `.zip`) | `Program Files\ThabangVision\Collaboration` (zip: beside `photocraft.exe`) | a machine-wide Run value, part of the MSI | uninstalling the last Ubunye app |
-| macOS | `.dmg` | `PhotoCraft.app/Contents/MacOS/` (Finder shows Ubunye Photo; + `Resources/kopanod.version`) | a LaunchAgent (made by the app) | moving the app to the Trash (see below) |
+| macOS | `.dmg` | `Ubunye Photo.app/Contents/MacOS/` (+ `Resources/kopanod.version`) | a LaunchAgent (made by the app) | moving the app to the Trash (see below) |
 | Linux | `.deb`, `.rpm` | `/usr/lib/photocraft/kopanod`, linked as `/usr/bin/kopanod` | a packaged systemd user unit | removing the last Ubunye app |
 | Linux | `.AppImage`, `.tar.gz` | inside (AppImage: copied to `~/.local/share/kopano/bin`) | a systemd user unit (made by the app) | nothing (no uninstaller) |
 

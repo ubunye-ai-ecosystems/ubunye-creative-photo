@@ -13,7 +13,11 @@ use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
 
-use super::kopano::*;
+use super::kopano::{
+    ACTIVITY_KEEP, Client, Config, DEFAULT_API_PORT, LAYER_KEYS, NOT_RUNNING, RELINK_QUIET_MS, Review, Said, State, Teammate, ago, api_port_with, app_port,
+    binding, changed_text, home_with, is_hex_id, layer_key_of, owner_of, plain, read_record, read_token, record_path, setting_text, short, tile_hashes,
+    write_record,
+};
 use super::kopano_panel::{ControlLink, KopanoPanel, Started};
 use crate::PhotocraftApp;
 

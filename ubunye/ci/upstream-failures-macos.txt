@@ -1,0 +1,8 @@
+# Tests that also fail on unmodified upstream PhotoCraft main (560beed8) with ubunye-ci's exact build + test
+# steps on macos-15: baseline run 41346186567, job 124966392786 (branch ci/upstream-baseline; only upstream's
+# own mkfifoat test-build fix applied). Same 4 failures in ours: ubunye-ci run 41341069383, job 124951020458.
+# Skipped on macOS only. Format: <nextest binary id> <test path>
+photocraft-automation workspace::tests::trusted_root_names_are_not_validated_as_relative_request_names
+photocraft-ui-egui tools::type_tool::font_commit_tests::selected_fonts_commit_pattern_0
+photocraft-ui-egui tools::type_tool::font_commit_tests::selected_fonts_commit_pattern_2
+photocraft-ui-egui tools::type_tool::font_commit_tests::selected_fonts_commit_pattern_3

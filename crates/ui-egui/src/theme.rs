@@ -9,6 +9,12 @@
 //!   with the rest of a GNOME desktop.
 //! - **Solarized Dark**: Ethan Schoonover's Solarized palette (base03/base02 surfaces, base0 text,
 //!   Solarized blue accent) with the Studio layout.
+//! - **Breeze** (Light and Dark): the Studio layout adapted to the look of KDE Plasma's Breeze
+//!   (blue-grey surfaces, Breeze blue accent, 5 px corners), so the app sits with the rest of a
+//!   Plasma desktop.
+//!
+//! - **Pro (Light Gray)** and **Pro (Light)**: Photoshop's third and fourth interface brightness
+//!   levels (#B8B8B8 and #F0F0F0 panels) with the Pro layout (#2661).
 //!
 //! Widgets read [`Tokens::get`] instead of hard-coding colours, so every theme applies everywhere.
 
@@ -24,6 +30,10 @@ pub enum ThemeKind {
     /// Photoshop's default (second) interface brightness: #535353 panels, #282828 canvas (default).
     #[default]
     ProMedium,
+    /// Photoshop's third interface brightness: #B8B8B8 panels (#2661).
+    ProLightGray,
+    /// Photoshop's fourth (lightest) interface brightness: #F0F0F0 panels (#2661).
+    ProLight,
     Studio,
     StudioLight,
     Classic,
@@ -34,29 +44,49 @@ pub enum ThemeKind {
     /// Solarized Dark (Ethan Schoonover's palette): the base03 background, base02 panels and
     /// base0 body text, with the Solarized blue accent.
     SolarizedDark,
+    /// An adaptation of KDE Plasma's Breeze Light look.
+    BreezeLight,
+    /// An adaptation of KDE Plasma's Breeze Dark look.
+    BreezeDark,
+    /// A low-contrast dark theme: muted violet-grey surfaces, softened text and a periwinkle accent.
+    SoftDark,
+    /// A low-contrast light theme: pale violet-grey surfaces, softened dark text and a periwinkle accent.
+    SoftLight,
 }
 
 impl ThemeKind {
-    pub const ALL: [ThemeKind; 8] = [
+    pub const ALL: [ThemeKind; 14] = [
         ThemeKind::Pro,
         ThemeKind::ProMedium,
+        ThemeKind::ProLightGray,
+        ThemeKind::ProLight,
         ThemeKind::Studio,
         ThemeKind::StudioLight,
         ThemeKind::Classic,
         ThemeKind::SolarizedDark,
         ThemeKind::Adwaita,
         ThemeKind::AdwaitaDark,
+        ThemeKind::BreezeLight,
+        ThemeKind::BreezeDark,
+        ThemeKind::SoftDark,
+        ThemeKind::SoftLight,
     ];
     pub fn label(self) -> &'static str {
         match self {
             ThemeKind::Pro => "Pro (Dark)",
             ThemeKind::ProMedium => "Pro (Medium Gray)",
+            ThemeKind::ProLightGray => "Pro (Light Gray)",
+            ThemeKind::ProLight => "Pro (Light)",
             ThemeKind::Studio => "Studio (Dark)",
             ThemeKind::StudioLight => "Studio (Light)",
             ThemeKind::Classic => "Classic",
             ThemeKind::Adwaita => "Adwaita (Light)",
             ThemeKind::AdwaitaDark => "Adwaita (Dark)",
             ThemeKind::SolarizedDark => "Solarized Dark",
+            ThemeKind::BreezeLight => "Breeze Light",
+            ThemeKind::BreezeDark => "Breeze Dark",
+            ThemeKind::SoftDark => "Soft Dark",
+            ThemeKind::SoftLight => "Soft Light",
         }
     }
     /// The canonical name: `ui.set {theme}` accepts it and the Window › Theme commands are
@@ -65,13 +95,40 @@ impl ThemeKind {
         match self {
             ThemeKind::Pro => "pro",
             ThemeKind::ProMedium => "proMedium",
+            ThemeKind::ProLightGray => "proLightGray",
+            ThemeKind::ProLight => "proLight",
             ThemeKind::Studio => "studio",
             ThemeKind::StudioLight => "studioLight",
             ThemeKind::Classic => "classic",
             ThemeKind::Adwaita => "adwaita",
             ThemeKind::AdwaitaDark => "adwaitaDark",
             ThemeKind::SolarizedDark => "solarizedDark",
+            ThemeKind::BreezeLight => "breezeLight",
+            ThemeKind::BreezeDark => "breezeDark",
+            ThemeKind::SoftDark => "softDark",
+            ThemeKind::SoftLight => "softLight",
         }
+    }
+    /// Photoshop-grammar layout (tab strips, flat panels): the four Pro brightness levels.
+    pub fn is_pro(self) -> bool {
+        matches!(self, ThemeKind::Pro | ThemeKind::ProMedium | ThemeKind::ProLightGray | ThemeKind::ProLight)
+    }
+    /// Whether this theme belongs to the dark appearance family.
+    pub fn is_dark(self) -> bool {
+        matches!(
+            self,
+            ThemeKind::Studio
+                | ThemeKind::Pro
+                | ThemeKind::ProMedium
+                | ThemeKind::SolarizedDark
+                | ThemeKind::AdwaitaDark
+                | ThemeKind::BreezeDark
+                | ThemeKind::SoftDark
+        )
+    }
+    /// Whether this theme belongs to the light appearance family.
+    pub fn is_light(self) -> bool {
+        !self.is_dark()
     }
     pub fn next(self) -> Self {
         let i = Self::ALL.iter().position(|k| *k == self).unwrap_or(0);
@@ -81,12 +138,18 @@ impl ThemeKind {
         match s.to_ascii_lowercase().replace([' ', '_', '-', '(', ')'], "").as_str() {
             "pro" | "prodark" | "photoshop" | "dark" => Some(ThemeKind::Pro),
             "promedium" | "promediumgray" | "medium" | "mediumgray" => Some(ThemeKind::ProMedium),
+            "prolightgray" | "lightgray" | "mediumlight" => Some(ThemeKind::ProLightGray),
+            "prolight" | "prolightest" | "lightest" | "light" => Some(ThemeKind::ProLight),
             "studio" | "studiodark" => Some(ThemeKind::Studio),
-            "studiolight" | "light" => Some(ThemeKind::StudioLight),
+            "studiolight" => Some(ThemeKind::StudioLight),
             "classic" | "win2000" | "retro" => Some(ThemeKind::Classic),
             "adwaita" | "adwaitalight" | "gnome" | "gnomelight" => Some(ThemeKind::Adwaita),
             "adwaitadark" | "gnomedark" => Some(ThemeKind::AdwaitaDark),
             "solarizeddark" | "solarized" => Some(ThemeKind::SolarizedDark),
+            "breezelight" | "breeze" | "kde" | "kdelight" | "plasma" | "plasmalight" => Some(ThemeKind::BreezeLight),
+            "breezedark" | "kdedark" | "plasmadark" => Some(ThemeKind::BreezeDark),
+            "softdark" => Some(ThemeKind::SoftDark),
+            "softlight" => Some(ThemeKind::SoftLight),
             _ => None,
         }
     }
@@ -179,6 +242,56 @@ impl Tokens {
                 row_selected: Color32::from_rgb(107, 107, 107),
                 ..Tokens::for_kind(ThemeKind::Pro)
             },
+            // Photoshop's medium-light brightness: #B8B8B8 panels, dark text, a mid-grey canvas.
+            ThemeKind::ProLightGray => Tokens {
+                kind,
+                chrome: Color32::from_rgb(184, 184, 184),
+                canvas: Color32::from_rgb(160, 160, 160),
+                canvas_dot: Color32::from_rgb(160, 160, 160),
+                dock: Color32::from_rgb(168, 168, 168),
+                card: Color32::from_rgb(184, 184, 184),
+                card_border: Color32::from_rgb(160, 160, 160),
+                field: Color32::from_rgb(214, 214, 214),
+                field_border: Color32::from_rgb(140, 140, 140),
+                hover: Color32::from_rgb(198, 198, 198),
+                pressed: Color32::from_rgb(170, 170, 170),
+                text: Color32::from_rgb(20, 20, 20),
+                text_dim: Color32::from_rgb(52, 52, 52),
+                text_faint: Color32::from_rgb(96, 96, 96),
+                icon: Color32::from_rgb(38, 38, 38),
+                accent_soft: Color32::from_rgb(208, 208, 208),
+                accent_text: Color32::from_rgb(0, 66, 150),
+                separator: Color32::from_rgb(158, 158, 158),
+                shadow: Color32::from_black_alpha(70),
+                tab_strip: Color32::from_rgb(170, 170, 170),
+                row_selected: Color32::from_rgb(212, 212, 212),
+                ..Tokens::for_kind(ThemeKind::Pro)
+            },
+            // Photoshop's lightest brightness: #F0F0F0 panels, dark text, a light-grey canvas.
+            ThemeKind::ProLight => Tokens {
+                kind,
+                chrome: Color32::from_rgb(240, 240, 240),
+                canvas: Color32::from_rgb(214, 214, 214),
+                canvas_dot: Color32::from_rgb(214, 214, 214),
+                dock: Color32::from_rgb(226, 226, 226),
+                card: Color32::from_rgb(240, 240, 240),
+                card_border: Color32::from_rgb(214, 214, 214),
+                field: Color32::WHITE,
+                field_border: Color32::from_rgb(186, 186, 186),
+                hover: Color32::from_rgb(226, 226, 226),
+                pressed: Color32::from_rgb(206, 206, 206),
+                text: Color32::from_rgb(20, 20, 20),
+                text_dim: Color32::from_rgb(64, 64, 64),
+                text_faint: Color32::from_rgb(120, 120, 120),
+                icon: Color32::from_rgb(46, 46, 46),
+                accent_soft: Color32::from_rgb(214, 214, 214),
+                accent_text: Color32::from_rgb(16, 98, 196),
+                separator: Color32::from_rgb(214, 214, 214),
+                shadow: Color32::from_black_alpha(50),
+                tab_strip: Color32::from_rgb(226, 226, 226),
+                row_selected: Color32::from_rgb(204, 204, 204),
+                ..Tokens::for_kind(ThemeKind::Pro)
+            },
             ThemeKind::Pro => Tokens {
                 kind,
                 chrome: Color32::from_rgb(50, 50, 50),
@@ -250,7 +363,9 @@ impl Tokens {
                 radius_lg: 12.0,
                 bevel: false,
                 pro: false,
-                round_chips: true,
+                // Studio Dark uses the compact overlapping square foreground/background
+                // chips rather than the large stacked circles (#3494).
+                round_chips: false,
                 tab_strip: Color32::TRANSPARENT,
                 row_selected: Color32::TRANSPARENT,
                 histogram_bg: Color32::from_rgb(14, 14, 15),
@@ -422,6 +537,187 @@ impl Tokens {
                 caption_close_text: Color32::WHITE,
                 scrim: Color32::from_black_alpha(110),
             },
+            // The light counterpart, adapted the same way: our own values, chosen a few levels
+            // from Breeze Light's surfaces so the app blends into a Plasma desktop without being a
+            // copy. Breeze's own inactive text and link blue are only about 2.8:1 on such
+            // surfaces, so the secondary and faint text, the accent and danger text and the status
+            // hues are darker to hold 4.5:1 (checked by the tests), and the primary button is a
+            // deeper blue that takes white text.
+            ThemeKind::BreezeLight => Tokens {
+                kind,
+                chrome: Color32::from_rgb(219, 222, 226),
+                canvas: Color32::from_rgb(219, 222, 226),
+                canvas_dot: Color32::from_rgb(219, 222, 226),
+                dock: Color32::from_rgb(224, 227, 231),
+                card: Color32::from_rgb(236, 238, 241),
+                card_border: Color32::from_rgb(203, 208, 213),
+                field: Color32::from_rgb(249, 250, 252),
+                field_border: Color32::from_rgb(184, 191, 198),
+                hover: Color32::from_rgb(226, 230, 235),
+                pressed: Color32::from_rgb(208, 214, 221),
+                text: Color32::from_rgb(33, 37, 42),
+                text_dim: Color32::from_rgb(54, 63, 72),
+                text_faint: Color32::from_rgb(81, 90, 100),
+                icon: Color32::from_rgb(52, 58, 64),
+                accent: Color32::from_rgb(58, 172, 232),
+                accent_soft: Color32::from_rgba_unmultiplied(58, 172, 232, 48),
+                accent_border: Color32::from_rgba_unmultiplied(58, 172, 232, 170),
+                accent_text: Color32::from_rgb(30, 94, 136),
+                separator: Color32::from_rgb(214, 218, 222),
+                shadow: Color32::from_black_alpha(45),
+                primary_bg: Color32::from_rgb(35, 122, 180),
+                primary_text: Color32::WHITE,
+                danger: Color32::from_rgb(170, 50, 64),
+                warning: Color32::from_rgb(153, 72, 0),
+                radius_sm: 5.0,
+                radius: 5.0,
+                radius_lg: 6.0,
+                bevel: false,
+                pro: false,
+                round_chips: true,
+                tab_strip: Color32::TRANSPARENT,
+                row_selected: Color32::TRANSPARENT,
+                histogram_bg: Color32::from_rgb(33, 37, 42),
+                histogram_level: 240,
+                caption_close: Color32::from_rgb(213, 51, 60),
+                caption_close_text: Color32::WHITE,
+                scrim: Color32::from_black_alpha(110),
+            },
+            // An adaptation of KDE Plasma's Breeze Dark look on the Studio layout, not a copy: our
+            // own values, chosen a few levels from Breeze Dark's surfaces (the darkest canvas, then
+            // the dock, the cards, and the chrome and controls) so the app blends into a Plasma
+            // desktop. Near-white text, the blue accent and the orange warning hue sit close to
+            // Breeze's, with its 5 px frame radius.
+            // Readability wins over fidelity: every text colour holds 4.5:1 on every surface and on
+            // the hover, pressed and selected states (checked by the tests), so the secondary and
+            // faint text, the accent and danger text and the status hues are lighter than Breeze's,
+            // hover and pressed are small steps, and the primary button is a deeper blue that takes
+            // white text. Outlines and those steps are our own tints.
+            ThemeKind::BreezeDark => Tokens {
+                kind,
+                chrome: Color32::from_rgb(38, 42, 48),
+                canvas: Color32::from_rgb(17, 20, 24),
+                canvas_dot: Color32::from_rgb(17, 20, 24),
+                dock: Color32::from_rgb(26, 29, 34),
+                card: Color32::from_rgb(29, 33, 38),
+                card_border: Color32::from_rgb(52, 56, 61),
+                field: Color32::from_rgb(38, 42, 48),
+                field_border: Color32::from_rgb(68, 73, 79),
+                hover: Color32::from_rgb(50, 54, 59),
+                pressed: Color32::from_rgb(58, 63, 69),
+                text: Color32::from_rgb(250, 251, 253),
+                text_dim: Color32::from_rgb(200, 206, 213),
+                text_faint: Color32::from_rgb(164, 170, 177),
+                icon: Color32::from_rgb(236, 238, 240),
+                accent: Color32::from_rgb(58, 172, 232),
+                accent_soft: Color32::from_rgba_unmultiplied(58, 172, 232, 40),
+                accent_border: Color32::from_rgba_unmultiplied(58, 172, 232, 160),
+                accent_text: Color32::from_rgb(80, 184, 238),
+                separator: Color32::from_rgb(46, 50, 54),
+                shadow: Color32::from_black_alpha(150),
+                primary_bg: Color32::from_rgb(30, 118, 176),
+                primary_text: Color32::WHITE,
+                danger: Color32::from_rgb(227, 111, 123),
+                warning: Color32::from_rgb(244, 120, 6),
+                radius_sm: 5.0,
+                radius: 5.0,
+                radius_lg: 6.0,
+                bevel: false,
+                pro: false,
+                round_chips: true,
+                tab_strip: Color32::TRANSPARENT,
+                row_selected: Color32::TRANSPARENT,
+                histogram_bg: Color32::from_rgb(17, 20, 24),
+                histogram_level: 225,
+                caption_close: Color32::from_rgb(213, 51, 60),
+                caption_close_text: Color32::WHITE,
+                scrim: Color32::from_black_alpha(110),
+            },
+            // Soft Dark: our own low-contrast palette on the Studio layout. Muted violet-grey
+            // surfaces (never near-black), softened off-white text and a periwinkle accent; the
+            // text colours still hold 4.5:1 on every surface (checked by the tests).
+            ThemeKind::SoftDark => Tokens {
+                kind,
+                chrome: Color32::from_rgb(58, 58, 68),
+                canvas: Color32::from_rgb(40, 40, 48),
+                canvas_dot: Color32::from_rgb(40, 40, 48),
+                dock: Color32::from_rgb(47, 47, 56),
+                card: Color32::from_rgb(54, 54, 64),
+                card_border: Color32::from_rgb(70, 70, 82),
+                field: Color32::from_rgb(64, 64, 75),
+                field_border: Color32::from_rgb(84, 84, 98),
+                hover: Color32::from_rgb(68, 68, 80),
+                pressed: Color32::from_rgb(74, 74, 88),
+                text: Color32::from_rgb(238, 238, 246),
+                text_dim: Color32::from_rgb(212, 212, 224),
+                text_faint: Color32::from_rgb(190, 190, 206),
+                icon: Color32::from_rgb(214, 214, 226),
+                accent: Color32::from_rgb(138, 154, 232),
+                accent_soft: Color32::from_rgba_unmultiplied(138, 154, 232, 48),
+                accent_border: Color32::from_rgba_unmultiplied(138, 154, 232, 150),
+                accent_text: Color32::from_rgb(190, 200, 252),
+                separator: Color32::from_rgb(36, 36, 44),
+                shadow: Color32::from_black_alpha(110),
+                primary_bg: Color32::from_rgb(86, 104, 196),
+                primary_text: Color32::WHITE,
+                danger: Color32::from_rgb(250, 160, 172),
+                warning: Color32::from_rgb(240, 200, 130),
+                radius_sm: 7.0,
+                radius: 10.0,
+                radius_lg: 14.0,
+                bevel: false,
+                pro: false,
+                round_chips: true,
+                tab_strip: Color32::TRANSPARENT,
+                row_selected: Color32::TRANSPARENT,
+                histogram_bg: Color32::from_rgb(40, 40, 48),
+                histogram_level: 220,
+                caption_close: Color32::from_rgb(200, 72, 86),
+                caption_close_text: Color32::WHITE,
+                scrim: Color32::from_black_alpha(100),
+            },
+            // Soft Light: pale violet-grey surfaces, softened dark-violet text (not black) and a
+            // periwinkle accent, with the same generous radii as Soft Dark.
+            ThemeKind::SoftLight => Tokens {
+                kind,
+                chrome: Color32::from_rgb(232, 230, 236),
+                canvas: Color32::from_rgb(218, 216, 224),
+                canvas_dot: Color32::from_rgb(218, 216, 224),
+                dock: Color32::from_rgb(226, 224, 231),
+                card: Color32::from_rgb(240, 238, 243),
+                card_border: Color32::from_rgb(208, 205, 215),
+                field: Color32::from_rgb(250, 249, 252),
+                field_border: Color32::from_rgb(190, 187, 201),
+                hover: Color32::from_rgb(228, 226, 234),
+                pressed: Color32::from_rgb(212, 209, 221),
+                text: Color32::from_rgb(44, 42, 56),
+                text_dim: Color32::from_rgb(62, 60, 76),
+                text_faint: Color32::from_rgb(80, 78, 96),
+                icon: Color32::from_rgb(64, 62, 80),
+                accent: Color32::from_rgb(110, 128, 216),
+                accent_soft: Color32::from_rgba_unmultiplied(110, 128, 216, 44),
+                accent_border: Color32::from_rgba_unmultiplied(110, 128, 216, 170),
+                accent_text: Color32::from_rgb(46, 58, 146),
+                separator: Color32::from_rgb(210, 207, 218),
+                shadow: Color32::from_black_alpha(40),
+                primary_bg: Color32::from_rgb(80, 98, 190),
+                primary_text: Color32::WHITE,
+                danger: Color32::from_rgb(166, 44, 62),
+                warning: Color32::from_rgb(140, 72, 0),
+                radius_sm: 7.0,
+                radius: 10.0,
+                radius_lg: 14.0,
+                bevel: false,
+                pro: false,
+                round_chips: true,
+                tab_strip: Color32::TRANSPARENT,
+                row_selected: Color32::TRANSPARENT,
+                histogram_bg: Color32::from_rgb(44, 42, 56),
+                histogram_level: 240,
+                caption_close: Color32::from_rgb(200, 60, 72),
+                caption_close_text: Color32::WHITE,
+                scrim: Color32::from_black_alpha(90),
+            },
             // Ethan Schoonover's Solarized Dark palette: base03 canvas, base02 surfaces, base0
             // body text and the Solarized blue accent. https://ethanschoonover.com/solarized/
             // (MIT; see LICENSE-solarized.txt)
@@ -470,7 +766,7 @@ impl Tokens {
 
     /// Tokens for the active theme (stored in egui's context data by [`apply`]).
     pub fn get(ctx: &egui::Context) -> Tokens {
-        ctx.data(|d| d.get_temp::<Tokens>(egui::Id::new("photocraft-theme"))).unwrap_or_else(|| Tokens::for_kind(ThemeKind::Studio))
+        ctx.data(|d| d.get_temp::<Tokens>(egui::Id::unique("photocraft-theme"))).unwrap_or_else(|| Tokens::for_kind(ThemeKind::Studio))
     }
 
     /// Thin RGB outlines; the filled bands use the same hues with subdued coverage.
@@ -522,8 +818,30 @@ impl Tokens {
         self.histogram_bg
     }
 
+    /// The background behind selected text in a text field (#3789): a subtle shade rather than
+    /// egui's default blue. The monochrome Pro themes use a grey so a selection doesn't read as a
+    /// second accent; coloured themes keep their own accent. Scoped to text fields by
+    /// [`crate::widgets::text_field`], because `Visuals::selection` also fills selected list rows
+    /// and slider trails, which must keep the theme's.
+    pub fn field_selection(&self) -> Color32 {
+        if self.pro { Color32::from_gray(if self.dark() { 96 } else { 201 }) } else { self.accent_soft }
+    }
+
+    /// The 1 px ring round a slider knob, if the theme draws one: the Pro layouts' dark ring, and
+    /// in the light themes the dim text colour, so their white knob stands out from a pale panel
+    /// (#7927). The dark Studio-layout themes need none; Classic draws a bevelled knob instead.
+    pub fn knob_outline(&self) -> Option<Color32> {
+        if self.pro {
+            Some(Color32::from_gray(40))
+        } else if self.dark() {
+            None
+        } else {
+            Some(self.text_dim)
+        }
+    }
+
     pub fn dark(&self) -> bool {
-        matches!(self.kind, ThemeKind::Studio | ThemeKind::Pro | ThemeKind::ProMedium | ThemeKind::SolarizedDark | ThemeKind::AdwaitaDark)
+        self.kind.is_dark()
     }
 }
 
@@ -532,9 +850,10 @@ pub fn install_fonts(ctx: &egui::Context) {
     install_fonts_with(ctx, crate::cjk_fonts::Sources::system());
 }
 
-/// [`install_fonts`] with the CJK/Thai fallback fonts taken from `cjk` (tests swap the sources).
+/// [`install_fonts`] with the CJK and other-script fallback fonts taken from `cjk` (tests swap the sources).
 pub fn install_fonts_with(ctx: &egui::Context, cjk: crate::cjk_fonts::Sources) {
-    let mut fonts = FontDefinitions::default();
+    // egui's default fonts stay last in the stack, for symbols and emoji Inter lacks.
+    let mut fonts = crate::egui_fonts::definitions();
     // The bundled fonts are inflated on first use (photocraft_text::fonts). Should one ever fail
     // to inflate (empty bytes), it is left out and egui's default fonts draw that text.
     let add = |fonts: &mut FontDefinitions, name: &str, bytes: &'static [u8]| -> Option<String> {
@@ -554,6 +873,19 @@ pub fn install_fonts_with(ctx: &egui::Context, cjk: crate::cjk_fonts::Sources) {
     }
     if let Some(mono) = mono {
         fonts.families.entry(FontFamily::Monospace).or_default().insert(0, mono);
+    }
+    // The optional craft-fonts input carries Japanese, Simplified Chinese, Korean, Arabic, Thai and
+    // other faces. They are not registered into this static stack: `cjk_fonts` installs a
+    // per-character font provider for them, so a broad Simplified Chinese face is not put in the
+    // family stack ahead of the Japanese or Korean face, and a locale without a Traditional Chinese
+    // craft face leaves Han to the system font. (A single linear per-family chain still decides a
+    // glyph once a broad face is discovered; see `cjk_fonts`.)
+    // Served script fallbacks the web build has received (Arabic, Japanese…), after everything else.
+    for (name, data) in crate::served_fonts::ui_faces() {
+        fonts.font_data.insert(name.clone(), data);
+        for family in [FontFamily::Proportional, FontFamily::Monospace] {
+            fonts.families.entry(family).or_default().push(name.clone());
+        }
     }
     // Named weights fall back to the default stack for missing glyphs.
     let fallback: Vec<String> = fonts.families.get(&FontFamily::Proportional).cloned().unwrap_or_default();
@@ -578,7 +910,7 @@ pub fn install_fonts_with(ctx: &egui::Context, cjk: crate::cjk_fonts::Sources) {
     {
         ctx.add_plugin(UiFontSizePlugin { applied: size, defer_after_install: true });
     }
-    // Japanese / Chinese / Korean / Thai fallback fonts (craft-fonts' Japanese ones if built in, then
+    // CJK, Thai, Arabic, Indic and other script fallback fonts (craft-fonts' Japanese ones if built in, then
     // the system's) are registered on demand (cjk_fonts.rs).
     crate::cjk_fonts::install_with(ctx, cjk);
 }
@@ -591,11 +923,16 @@ fn ui_fonts_active(ctx: &egui::Context) -> bool {
 }
 
 fn ui_fonts_id() -> egui::Id {
-    egui::Id::new("photocraft-ui-fonts")
+    egui::Id::unique("photocraft-ui-fonts")
 }
 
 fn ui_font_size(ctx: &egui::Context) -> UiFontSize {
     ctx.data(|d| d.get_temp::<UiFontSize>(ui_fonts_id())).unwrap_or_default()
+}
+
+/// The Interface > UI Font Size multiplier for the current context (including the default Small).
+pub(crate) fn ui_font_scale(ctx: &egui::Context) -> f32 {
+    font_scale(ui_font_size(ctx))
 }
 
 fn font_scale(size: UiFontSize) -> f32 {
@@ -659,6 +996,10 @@ impl egui::Plugin for UiFontSizePlugin {
             Arc::make_mut(data).tweak.scale = original * font_scale(size);
         }
         ctx.set_fonts(fonts);
+        // The provider must use the scale of the definitions that were active while this pass
+        // laid out text. A face it discovers during the pass is inserted at that old scale; after
+        // `set_fonts` the rescaled definitions take effect and the provider follows them.
+        crate::cjk_fonts::set_craft_font_scale(ctx, font_scale(size));
         self.applied = size;
         ctx.request_repaint();
     }
@@ -680,7 +1021,7 @@ pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
     // including when an integration or restored egui state pinned its own theme preference.
     ctx.set_theme(egui::ThemePreference::System);
     let t = Tokens::for_kind(kind);
-    ctx.data_mut(|d| d.insert_temp(egui::Id::new("photocraft-theme"), t));
+    ctx.data_mut(|d| d.insert_temp(egui::Id::unique("photocraft-theme"), t));
     let mut v = if t.dark() { Visuals::dark() } else { Visuals::light() };
     v.panel_fill = t.chrome;
     v.window_fill = t.card;
@@ -742,7 +1083,15 @@ pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
         s.visuals.indent_has_left_vline = false;
         s.interaction.tooltip_delay = TOOLTIP_DELAY;
         // Thin overlay scrollbars that appear on hover (Photoshop/macOS style).
-        s.spacing.scroll = if t.bevel { egui::style::ScrollStyle::solid() } else { egui::style::ScrollStyle::thin() };
+        // Thin bars stay visible, including while the pointer is on them. The stock thin
+        // style fades the handle to the same opacity as the track, so the thumb disappears (#4611).
+        let mut scroll = if t.bevel { egui::style::ScrollStyle::solid() } else { egui::style::ScrollStyle::thin() };
+        if scroll.floating {
+            scroll.interact_handle_opacity = 1.0;
+            scroll.interact_background_opacity = 0.4;
+            scroll.floating_width = 4.0;
+        }
+        s.spacing.scroll = scroll;
         s.spacing.tooltip_width = 280.0;
     });
     // egui selects its style branch using OS appearance, independently of PhotoCraft's fixed
@@ -764,177 +1113,7 @@ pub fn canvas_bg(t: &Tokens) -> Color32 {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn text_sizes(ctx: &egui::Context) -> Vec<egui::Vec2> {
-        let mut sizes = Vec::new();
-        // The plugin queues changed fonts at the end of a pass; egui applies them next pass.
-        ctx.run_ui(Default::default(), |_| {}).textures_delta.clear();
-        ctx.run_ui(Default::default(), |ui| {
-            // Include custom painter fonts and explicit RichText sizes, not just text styles.
-            for font in [FontId::proportional(11.5), medium(12.0), semibold(15.0), mono(12.0), TextStyle::Body.resolve(ui.style())] {
-                sizes.push(ui.painter().layout_no_wrap("Interface 123".into(), font, Color32::WHITE).size());
-            }
-            sizes.push(ui.label(egui::RichText::new("Interface 123").size(13.0)).rect.size());
-        })
-        .textures_delta
-        .clear();
-        sizes
-    }
-
-    #[test]
-    fn ui_font_sizes_scale_shaping_and_row_height_without_accumulating() {
-        let ctx = egui::Context::default();
-        install_fonts(&ctx);
-        apply(&ctx, ThemeKind::Pro);
-        let original = text_sizes(&ctx);
-        let definitions = ctx.fonts(|f| f.definitions().clone());
-        for size in [UiFontSize::Tiny, UiFontSize::Small, UiFontSize::Medium, UiFontSize::Large, UiFontSize::Tiny, UiFontSize::Small] {
-            set_ui_font_size(&ctx, size);
-            let measured = text_sizes(&ctx);
-            for (before, after) in original.iter().zip(&measured) {
-                let expected = *before * font_scale(size);
-                assert!((after.x - expected.x).abs() < 1.0, "{size:?}: width {after:?} vs {expected:?}");
-                // egui rounds ascent/descent and the final row height to pixels separately.
-                assert!((after.y - expected.y).abs() < 1.1, "{size:?}: height {after:?} vs {expected:?}");
-            }
-            set_ui_font_size(&ctx, size);
-            assert_eq!(text_sizes(&ctx), measured, "setting the same size twice is stable");
-        }
-        assert_eq!(ctx.fonts(|f| f.definitions().clone()), definitions, "Small restores original font tweaks exactly");
-        assert_eq!(ctx.zoom_factor(), 1.0);
-    }
-
-    /// The desktop app installs fonts and loads the saved UI Font Size in its first frame, while
-    /// egui's default fonts are still active. Any size but Small then panicked on the next pass
-    /// ("FontFamily::Name("medium") is not bound to any fonts") because the plugin rescaled a
-    /// copy of the defaults and that replaced the queued Inter stack.
-    #[test]
-    fn saved_ui_font_size_survives_first_frame_install() {
-        let ctx = egui::Context::default();
-        let medium_bound = |ctx: &egui::Context| ctx.fonts(|f| f.families().contains(&FontFamily::Name("medium".into())));
-        ctx.run_ui(Default::default(), |ui| {
-            assert!(!medium_bound(ui.ctx()), "egui's defaults are active in the first frame");
-            install_fonts(ui.ctx());
-            apply(ui.ctx(), ThemeKind::Pro);
-            set_ui_font_size(ui.ctx(), UiFontSize::Medium);
-        })
-        .textures_delta
-        .clear();
-        let mut width = 0.0;
-        ctx.run_ui(Default::default(), |ui| {
-            assert!(medium_bound(ui.ctx()), "the installed stack reaches the second pass");
-            width = ui.painter().layout_no_wrap("Ubunye Photo".into(), medium(13.0), Color32::WHITE).size().x;
-        })
-        .textures_delta
-        .clear();
-        assert!(width > 0.0);
-        // The saved size applies one pass later, from the installed stack.
-        ctx.run_ui(Default::default(), |_| {}).textures_delta.clear();
-        let mut scaled = 0.0;
-        ctx.run_ui(Default::default(), |ui| {
-            assert!(medium_bound(ui.ctx()));
-            scaled = ui.painter().layout_no_wrap("Ubunye Photo".into(), medium(13.0), Color32::WHITE).size().x;
-        })
-        .textures_delta
-        .clear();
-        assert!((scaled - width * font_scale(UiFontSize::Medium)).abs() < 1.0, "{scaled} vs {width} × 14/12");
-        // Re-installing (a language change) keeps the size and the named families.
-        ctx.run_ui(Default::default(), |ui| install_fonts(ui.ctx())).textures_delta.clear();
-        for _ in 0..2 {
-            ctx.run_ui(Default::default(), |ui| {
-                assert!(medium_bound(ui.ctx()));
-                let w = ui.painter().layout_no_wrap("Ubunye Photo".into(), medium(13.0), Color32::WHITE).size().x;
-                assert!((w - scaled).abs() < 1.0, "{w} vs {scaled}");
-            })
-            .textures_delta
-            .clear();
-        }
-    }
-
-    #[test]
-    fn theme_names_parse() {
-        assert_eq!(ThemeKind::from_name("Classic"), Some(ThemeKind::Classic));
-        assert_eq!(ThemeKind::from_name("studio (light)"), Some(ThemeKind::StudioLight));
-        assert_eq!(ThemeKind::from_name("dark"), Some(ThemeKind::Pro));
-        assert_eq!(ThemeKind::from_name("studio"), Some(ThemeKind::Studio));
-        assert_eq!(ThemeKind::from_name("Pro (Medium Gray)"), Some(ThemeKind::ProMedium));
-        assert_eq!(ThemeKind::from_name("Solarized Dark"), Some(ThemeKind::SolarizedDark));
-        assert_eq!(ThemeKind::from_name("solarized"), Some(ThemeKind::SolarizedDark));
-        let m = Tokens::for_kind(ThemeKind::ProMedium);
-        assert!(m.pro && m.dark() && m.kind == ThemeKind::ProMedium && m.card == Color32::from_rgb(83, 83, 83));
-        let s = Tokens::for_kind(ThemeKind::SolarizedDark);
-        assert!(s.dark() && !s.bevel && s.kind == ThemeKind::SolarizedDark && s.card == Color32::from_rgb(7, 54, 66));
-        assert_eq!(ThemeKind::from_name("neon"), None);
-    }
-
-    #[test]
-    fn every_palette_keeps_complete_egui_styles_when_the_os_changes() {
-        for kind in ThemeKind::ALL {
-            let ctx = egui::Context::default();
-            ctx.run_ui(egui::RawInput { system_theme: Some(egui::Theme::Dark), ..Default::default() }, |ui| apply(ui.ctx(), kind)).textures_delta.clear();
-            let expected = ctx.global_style();
-            for appearance in [Some(egui::Theme::Light), Some(egui::Theme::Dark), None] {
-                ctx.run_ui(egui::RawInput { system_theme: appearance, ..Default::default() }, |_| {}).textures_delta.clear();
-                assert_eq!(Tokens::get(&ctx), Tokens::for_kind(kind));
-                assert_eq!(ctx.global_style(), expected, "{kind:?} changed with {appearance:?}");
-                assert_eq!(ctx.style_of(egui::Theme::Light), expected);
-                assert_eq!(ctx.style_of(egui::Theme::Dark), expected);
-            }
-        }
-    }
-
-    #[test]
-    fn applying_a_palette_clears_a_pinned_native_appearance_preference() {
-        for pinned in [egui::Theme::Light, egui::Theme::Dark] {
-            let ctx = egui::Context::default();
-            ctx.set_theme(pinned);
-            apply(&ctx, ThemeKind::ProMedium);
-            assert_eq!(ctx.options(|o| o.theme_preference), egui::ThemePreference::System);
-        }
-    }
-
-    #[test]
-    fn studio_text_contrast_is_high() {
-        let t = Tokens::for_kind(ThemeKind::Studio);
-        let p = Tokens::for_kind(ThemeKind::Pro);
-        assert!(p.pro && !t.pro);
-        let lum = |c: Color32| 0.2126 * c.r() as f32 + 0.7152 * c.g() as f32 + 0.0722 * c.b() as f32;
-        assert!(lum(t.text) - lum(t.card) > 180.0);
-        assert!(lum(t.text_dim) - lum(t.card) > 90.0);
-    }
-
-    /// WCAG 2 contrast ratio, the measure libadwaita's own palette is held to.
-    fn contrast(a: Color32, b: Color32) -> f32 {
-        let lin = |v: u8| {
-            let c = f32::from(v) / 255.0;
-            if c <= 0.04045 { c / 12.92 } else { ((c + 0.055) / 1.055).powf(2.4) }
-        };
-        let lum = |c: Color32| 0.2126 * lin(c.r()) + 0.7152 * lin(c.g()) + 0.0722 * lin(c.b());
-        let (hi, lo) = if lum(a) > lum(b) { (lum(a), lum(b)) } else { (lum(b), lum(a)) };
-        (hi + 0.05) / (lo + 0.05)
-    }
-
-    #[test]
-    fn adwaita_themes_parse_and_meet_text_contrast() {
-        for kind in [ThemeKind::Adwaita, ThemeKind::AdwaitaDark] {
-            assert_eq!(ThemeKind::from_name(kind.id()), Some(kind));
-            assert_eq!(ThemeKind::from_name(kind.label()), Some(kind));
-            let t = Tokens::for_kind(kind);
-            assert_eq!(t.kind, kind);
-            assert_eq!(t.dark(), kind == ThemeKind::AdwaitaDark);
-            assert!(!t.pro && !t.bevel, "{kind:?} uses the Studio layout");
-            // AA body text (4.5:1) on every surface that carries labels.
-            for surface in [t.chrome, t.dock, t.card, t.field] {
-                assert!(contrast(t.text, surface) >= 7.0, "{kind:?}: text on {surface:?}");
-                assert!(contrast(t.text_dim, surface) >= 4.5, "{kind:?}: dim text on {surface:?}");
-            }
-            assert!(contrast(t.primary_text, t.primary_bg) >= 3.0, "{kind:?}: suggested-action button label");
-        }
-        assert_eq!(ThemeKind::from_name("gnome dark"), Some(ThemeKind::AdwaitaDark));
-    }
-}
+mod tests;
 
 /// Development feature: live design-token overrides.
 ///
@@ -981,7 +1160,7 @@ pub mod live {
                     super::apply(ctx, kind);
                     let mut t = Tokens::get(ctx);
                     let unknown = apply_overrides(&mut t, &v);
-                    ctx.data_mut(|d| d.insert_temp(egui::Id::new("photocraft-theme"), t));
+                    ctx.data_mut(|d| d.insert_temp(egui::Id::unique("photocraft-theme"), t));
                     if !unknown.is_empty() {
                         log::warn!("unknown token keys: {unknown:?}");
                     }
@@ -1010,50 +1189,195 @@ pub mod live {
         let mut unknown = Vec::new();
         let Some(obj) = v.as_object() else { return unknown };
         for (k, val) in obj {
-            macro_rules! c {
-                ($($f:ident),*) => {
-                    match k.as_str() {
-                        $(stringify!($f) => { if let Some(c) = color(val) { t.$f = c; } })*
-                        "radius_sm" => { if let Some(x) = val.as_f64() { t.radius_sm = x as f32; } }
-                        "radius" => { if let Some(x) = val.as_f64() { t.radius = x as f32; } }
-                        "radius_lg" => { if let Some(x) = val.as_f64() { t.radius_lg = x as f32; } }
-                        _ => unknown.push(k.clone()),
-                    }
-                };
+            if override_chrome_color(t, k, val) || override_text_color(t, k, val) || override_accent_color(t, k, val) {
+                continue;
             }
-            c!(
-                caption_close,
-                caption_close_text,
-                chrome,
-                canvas,
-                canvas_dot,
-                dock,
-                card,
-                card_border,
-                field,
-                field_border,
-                hover,
-                pressed,
-                text,
-                text_dim,
-                text_faint,
-                icon,
-                accent,
-                accent_soft,
-                accent_border,
-                accent_text,
-                separator,
-                shadow,
-                primary_bg,
-                primary_text,
-                danger,
-                warning,
-                tab_strip,
-                row_selected,
-                scrim
-            );
+            match k.as_str() {
+                "radius_sm" => {
+                    if let Some(x) = val.as_f64() {
+                        t.radius_sm = x as f32;
+                    }
+                }
+                "radius" => {
+                    if let Some(x) = val.as_f64() {
+                        t.radius = x as f32;
+                    }
+                }
+                "radius_lg" => {
+                    if let Some(x) = val.as_f64() {
+                        t.radius_lg = x as f32;
+                    }
+                }
+                _ => unknown.push(k.clone()),
+            }
         }
         unknown
+    }
+
+    fn override_chrome_color(t: &mut Tokens, key: &str, value: &serde_json::Value) -> bool {
+        match key {
+            "caption_close" => {
+                if let Some(c) = color(value) {
+                    t.caption_close = c;
+                }
+            }
+            "caption_close_text" => {
+                if let Some(c) = color(value) {
+                    t.caption_close_text = c;
+                }
+            }
+            "chrome" => {
+                if let Some(c) = color(value) {
+                    t.chrome = c;
+                }
+            }
+            "canvas" => {
+                if let Some(c) = color(value) {
+                    t.canvas = c;
+                }
+            }
+            "canvas_dot" => {
+                if let Some(c) = color(value) {
+                    t.canvas_dot = c;
+                }
+            }
+            "dock" => {
+                if let Some(c) = color(value) {
+                    t.dock = c;
+                }
+            }
+            "card" => {
+                if let Some(c) = color(value) {
+                    t.card = c;
+                }
+            }
+            "card_border" => {
+                if let Some(c) = color(value) {
+                    t.card_border = c;
+                }
+            }
+            "field" => {
+                if let Some(c) = color(value) {
+                    t.field = c;
+                }
+            }
+            "field_border" => {
+                if let Some(c) = color(value) {
+                    t.field_border = c;
+                }
+            }
+            _ => return false,
+        }
+        true
+    }
+
+    fn override_text_color(t: &mut Tokens, key: &str, value: &serde_json::Value) -> bool {
+        match key {
+            "hover" => {
+                if let Some(c) = color(value) {
+                    t.hover = c;
+                }
+            }
+            "pressed" => {
+                if let Some(c) = color(value) {
+                    t.pressed = c;
+                }
+            }
+            "text" => {
+                if let Some(c) = color(value) {
+                    t.text = c;
+                }
+            }
+            "text_dim" => {
+                if let Some(c) = color(value) {
+                    t.text_dim = c;
+                }
+            }
+            "text_faint" => {
+                if let Some(c) = color(value) {
+                    t.text_faint = c;
+                }
+            }
+            "icon" => {
+                if let Some(c) = color(value) {
+                    t.icon = c;
+                }
+            }
+            "separator" => {
+                if let Some(c) = color(value) {
+                    t.separator = c;
+                }
+            }
+            "shadow" => {
+                if let Some(c) = color(value) {
+                    t.shadow = c;
+                }
+            }
+            "primary_bg" => {
+                if let Some(c) = color(value) {
+                    t.primary_bg = c;
+                }
+            }
+            "primary_text" => {
+                if let Some(c) = color(value) {
+                    t.primary_text = c;
+                }
+            }
+            _ => return false,
+        }
+        true
+    }
+
+    fn override_accent_color(t: &mut Tokens, key: &str, value: &serde_json::Value) -> bool {
+        match key {
+            "accent" => {
+                if let Some(c) = color(value) {
+                    t.accent = c;
+                }
+            }
+            "accent_soft" => {
+                if let Some(c) = color(value) {
+                    t.accent_soft = c;
+                }
+            }
+            "accent_border" => {
+                if let Some(c) = color(value) {
+                    t.accent_border = c;
+                }
+            }
+            "accent_text" => {
+                if let Some(c) = color(value) {
+                    t.accent_text = c;
+                }
+            }
+            "danger" => {
+                if let Some(c) = color(value) {
+                    t.danger = c;
+                }
+            }
+            "warning" => {
+                if let Some(c) = color(value) {
+                    t.warning = c;
+                }
+            }
+            "tab_strip" => {
+                if let Some(c) = color(value) {
+                    t.tab_strip = c;
+                }
+            }
+            "row_selected" => {
+                if let Some(c) = color(value) {
+                    t.row_selected = c;
+                }
+            }
+            "scrim" => {
+                if let Some(c) = color(value) {
+                    t.scrim = c;
+                }
+            }
+            _ => return false,
+        }
+        true
     }
 
     #[cfg(test)]

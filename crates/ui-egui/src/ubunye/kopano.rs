@@ -970,7 +970,7 @@ mod native {
     use std::net::TcpStream;
     use std::time::Duration;
 
-    use super::*;
+    use super::{Client, Config, Job, MAX_LINE, NOT_RUNNING, POLL_MS, Said, Shared, Value, job_done, json, lock, now_ms, read_token};
 
     /// One connection to the service's API.
     pub struct Conn {
