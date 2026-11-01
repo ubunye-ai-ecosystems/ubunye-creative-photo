@@ -387,6 +387,11 @@ fn owner_only(path: &Path) -> Result<(), String> {
     let sid = sid.ok_or_else(|| format!("could not read this user's id from whoami: {me}"))?;
     let mut c = Command::new("icacls");
     c.arg(path).args(["/inheritance:r", "/grant:r", &format!("*{sid}:F")]);
+    wait_for(c, "icacls", Duration::from_secs(10))?;
+    // An elevated (admin) process gets SYSTEM and Administrators as explicit entries from its
+    // default DACL, which /inheritance:r leaves; take them (and the broad groups) off by SID.
+    let mut c = Command::new("icacls");
+    c.arg(path).args(["/remove:g", "*S-1-5-18", "*S-1-5-32-544", "*S-1-5-32-545", "*S-1-5-11", "*S-1-1-0"]);
     wait_for(c, "icacls", Duration::from_secs(10)).map(|_| ())
 }
 
