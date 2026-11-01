@@ -48,6 +48,16 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+      # Embedded fonts at upstream's pin (its release.yml and ci.yml): without them the app panics
+      # drawing CJK, Arabic or Devanagari on machines lacking such a system font. REQUIRED makes
+      # the build fail rather than ship without them.
+      - name: Fonts (craft-fonts)
+        shell: bash
+        run: |
+          git clone --quiet --no-checkout https://github.com/storytold/craft-fonts "$RUNNER_TEMP/craft-fonts"
+          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach b076417b5880bd4154bd22f00695b1d28c6bea83
+          echo "CRAFT_FONTS_DIR=$RUNNER_TEMP/craft-fonts" >>"$GITHUB_ENV"
+          echo "CRAFT_FONTS_REQUIRED=1" >>"$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           repository: ubunye-ai-ecosystems/ubunye-creative-studio-tools
@@ -121,6 +131,16 @@ jobs:
     timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
+      # Embedded fonts at upstream's pin (its release.yml and ci.yml): without them the app panics
+      # drawing CJK, Arabic or Devanagari on machines lacking such a system font. REQUIRED makes
+      # the build fail rather than ship without them.
+      - name: Fonts (craft-fonts)
+        shell: bash
+        run: |
+          git clone --quiet --no-checkout https://github.com/storytold/craft-fonts "$RUNNER_TEMP/craft-fonts"
+          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach b076417b5880bd4154bd22f00695b1d28c6bea83
+          echo "CRAFT_FONTS_DIR=$RUNNER_TEMP/craft-fonts" >>"$GITHUB_ENV"
+          echo "CRAFT_FONTS_REQUIRED=1" >>"$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           repository: ubunye-ai-ecosystems/ubunye-creative-studio-tools
@@ -170,6 +190,16 @@ jobs:
       NFPM_VERSION: 2.47.0
     steps:
       - uses: actions/checkout@v4
+      # Embedded fonts at upstream's pin (its release.yml and ci.yml): without them the app panics
+      # drawing CJK, Arabic or Devanagari on machines lacking such a system font. REQUIRED makes
+      # the build fail rather than ship without them.
+      - name: Fonts (craft-fonts)
+        shell: bash
+        run: |
+          git clone --quiet --no-checkout https://github.com/storytold/craft-fonts "$RUNNER_TEMP/craft-fonts"
+          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach b076417b5880bd4154bd22f00695b1d28c6bea83
+          echo "CRAFT_FONTS_DIR=$RUNNER_TEMP/craft-fonts" >>"$GITHUB_ENV"
+          echo "CRAFT_FONTS_REQUIRED=1" >>"$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           repository: ubunye-ai-ecosystems/ubunye-creative-studio-tools

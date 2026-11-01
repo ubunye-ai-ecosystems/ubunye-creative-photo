@@ -50,8 +50,9 @@ jobs:
             Windows) url=https://get.nexte.st/0.9.150/windows-tar ;;
           esac
           bin="${CARGO_HOME:-$HOME/.cargo}/bin"
+          mkdir -p "$bin" && echo "$bin" >>"$GITHUB_PATH"
           curl -LsSf "$url" | tar zxf - -C "$bin"
-          cargo nextest --version
+          "$bin/cargo-nextest" --version
       - name: Engine collaboration tests
         run: cargo nextest run --profile ci --locked -p photocraft-engine --lib -E 'test(ubunye_kopano)'
       - name: Panel and UI unit tests
