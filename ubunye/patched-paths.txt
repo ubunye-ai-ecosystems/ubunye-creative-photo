@@ -1,5 +1,4 @@
 # Upstream files modified by Ubunye (one path per line). Used for conflict-hotspot reports.
-.github/workflows/packaging-lint.yml
 .github/workflows/release.yml
 AGENTS.md
 ATTRIBUTION.md
@@ -11,6 +10,7 @@ SECURITY.md
 apps/photocraft-cli/build.rs
 apps/photocraft-cli/src/actions.rs
 apps/photocraft-cli/src/args.rs
+apps/photocraft-web-boot/index.html
 apps/photocraft-web-boot/src/main.rs
 apps/photocraft-web/index.html
 apps/photocraft-web/src/web.rs
@@ -48,7 +48,6 @@ assets/app-icon/photocraft.svg
 crates/automation/src/server/conventions.rs
 crates/automation/src/workspace.rs
 crates/cms/src/builtin.rs
-crates/cms/src/synth.rs
 crates/codecs/src/codecs/dpx.rs
 crates/codecs/src/codecs/heif.rs
 crates/engine/src/cmd.rs
@@ -78,6 +77,7 @@ crates/io/src/camera_raw_xmp.rs
 crates/io/src/lib.rs
 crates/io/src/psd_export.rs
 crates/io/src/psd_import/tests.rs
+crates/io/src/svg/tests.rs
 crates/io/src/xcf.rs
 crates/raw/src/jxl.rs
 crates/ui-egui/examples/snapshot.rs
@@ -173,6 +173,9 @@ packaging/linux/nfpm.yaml
 packaging/linux/package.sh
 packaging/macos/Info.plist.in
 packaging/macos/package.sh
+packaging/windows/check-install-policy.ps1
+packaging/windows/install-policy.json
+packaging/windows/install-policy.wxi
 packaging/windows/package.ps1
 packaging/windows/photocraft.wxs
 packaging/windows/portable.txt

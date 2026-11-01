@@ -1,40 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Ubunye Photo MSI (WiX Toolset v5: `dotnet tool install -g wix`, plus the UI and Util extensions:
-  `wix extension add -g WixToolset.UI.wixext/5.0.2 WixToolset.Util.wixext/5.0.2`). Built by package.ps1:
-
-    wix build photocraft.wxs -arch x64 -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext
-      -culture en-US -loc photocraft.en-us.wxl -d Version=1.2.3 -d DisplayVersion=1.2.3-rc.1
-      -d BinDir=... -d IconPath=... -d BannerBmp=... -d DialogBmp=... -o out.msi
-
-  Per-machine install with a setup wizard that names the version: Welcome, install folder
-  (Program Files\Ubunye Photo by default, remembered for upgrades), Ready, a progress page, and a
-  Finish page with a ticked "Launch Ubunye Photo" box. Installs a Start Menu shortcut, makes
-  Ubunye Photo the owner of `.pcraft`, and offers it under "Open with" for PSD/PSB and the image
-  formats it reads (without taking over the user's default app for them), plus photocraft-cli.
-  `msiexec /qn` still installs silently.
--->
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
-     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <?ifndef HasCraftFontLicences ?>
   <?define HasCraftFontLicences=0 ?>
   <?endif?>
-  <!-- Ubunye: per-machine only, not upstream's per-user-or-machine install-policy.wxi. The shared
-       ThabangVision collaboration service (collab.wxs) installs to Program Files and HKLM, and
-       0.7.0 was per-machine, so upgrades keep finding it. -->
-  <Package
-      Name="Ubunye Photo"
-      Manufacturer="Ubunye AI Ecosystems"
-      Version="$(var.Version)"
-      UpgradeCode="B5F26DFD-A4A7-4D46-8DDF-79537F0A829B"
-      Scope="perMachine"
-      Compressed="yes"
-      Language="1033">
+<!-- Ubunye: with ThabangVision collaboration linked (CollabBinDir), the MSI installs for everyone, as
+     0.7.0 did: kopanod is one shared, machine-wide copy (ubunye/packaging/windows/collab.wxs), which
+     an "Only for me" install could not write. Without it, upstream's dual-scope policy is unchanged. -->
+<?ifdef CollabBinDir?>
+<?define UbunyeScope = "perMachine" ?>
+<?else?>
+<?define UbunyeScope = "perUserOrMachine" ?>
+<?endif?>
+  <Package Name="Ubunye Photo" Manufacturer="Ubunye AI Ecosystems" Version="$(var.Version)" UpgradeCode="B5F26DFD-A4A7-4D46-8DDF-79537F0A829B" Scope="$(var.UbunyeScope)" Compressed="yes" Language="1033">
+<?ifdef CollabBinDir?>
+    <!-- Ubunye: read by install-policy.wxi (no scope page) and check-install-policy.ps1 -->
+    <Property Id="UBUNYE_MACHINE_SCOPE" Value="1" />
+<?endif?>
     <SummaryInformation Description="Ubunye Photo image editor" Manufacturer="Ubunye AI Ecosystems" />
+    <?include $(sys.SOURCEFILEDIR)install-policy.wxi?>
     <!-- Same-version upgrades let successive pre-releases of one X.Y.Z replace each other
          (MSI versions are numeric, so 1.2.3-rc.1 and 1.2.3-rc.2 are both 1.2.3). -->
-    <MajorUpgrade AllowSameVersionUpgrades="yes"
-        DowngradeErrorMessage="A newer version of Ubunye Photo is already installed." />
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of Ubunye Photo is already installed." />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
     <!-- MSI caches this icon using its Id as the filename. Advertised shortcuts to an
@@ -46,14 +32,13 @@
     <Property Id="ARPHELPLINK" Value="https://github.com/ubunye-ai-ecosystems/ubunye-creative-photo/issues" />
 
     <StandardDirectory Id="ProgramFiles6432Folder">
-      <Directory Id="INSTALLFOLDER" Name="Ubunye Photo" />
+      <Directory Id="CraftSuiteFolder" Name="Ubunye AI Ecosystems">
+        <Directory Id="INSTALLFOLDER" Name="Ubunye Photo" />
+      </Directory>
     </StandardDirectory>
     <StandardDirectory Id="ProgramMenuFolder" />
 
     <!-- An upgrade installs where the user put the previous version (written by PhotocraftApp). -->
-    <Property Id="INSTALLFOLDER">
-      <RegistrySearch Id="PreviousInstallFolder" Root="HKLM" Key="Software\Ubunye AI Ecosystems\Ubunye Photo" Name="InstallDir" Type="raw" />
-    </Property>
 
     <Feature Id="Main" Title="Ubunye Photo" Level="1">
       <?if $(var.HasCraftFontLicences) = 1 ?>
@@ -100,9 +85,7 @@
     <ComponentGroup Id="PhotocraftFiles" Directory="INSTALLFOLDER">
       <Component Id="PhotocraftApp" Guid="BE899921-351E-4A2D-AB58-1758C5DCB870">
         <File Id="PhotocraftExe" Source="$(var.BinDir)\photocraft.exe" KeyPath="yes">
-          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Ubunye Photo"
-              Description="Ubunye Photo image editor" WorkingDirectory="INSTALLFOLDER" Advertise="yes"
-              Icon="PhotocraftIcon.exe" IconIndex="0" />
+          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Ubunye Photo" Description="Ubunye Photo image editor" WorkingDirectory="INSTALLFOLDER" Advertise="yes" Icon="PhotocraftIcon.exe" IconIndex="0" />
         </File>
 
         <!-- .pcraft: Ubunye Photo's own format; Ubunye Photo is its default app. -->

@@ -15,6 +15,10 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
+  # Upstream's all-language UI tests draw real CJK, Arabic and Devanagari labels and panic on a
+  # missing glyph, so tests run with the pinned craft-fonts, as upstream's CI does.
+  CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
+  CRAFT_FONTS_REQUIRED: "1"
 jobs:
   test:
     name: panel + app tests (${{ matrix.os }})
@@ -32,9 +36,19 @@ jobs:
       - name: Toolchain (rust-toolchain.toml)
         run: rustup show active-toolchain || rustup toolchain install
       - uses: Swatinem/rust-cache@v2
+      - name: Fonts (craft-fonts, the revision upstream's ci.yml and release.yml pin)
+        uses: actions/checkout@v4
+        with:
+          repository: storytold/craft-fonts
+          ref: b076417b5880bd4154bd22f00695b1d28c6bea83
+          path: craft-fonts
+          persist-credentials: false
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: cargo-nextest@0.9.150
       - name: Engine collaboration tests
-        run: cargo test --locked -p photocraft-engine --lib ubunye_kopano
+        run: cargo nextest run --profile ci --locked -p photocraft-engine --lib -E 'test(ubunye_kopano)'
       - name: Panel and UI unit tests
-        run: cargo test --locked -p photocraft-ui-egui --lib
+        run: cargo nextest run --profile ci --locked -p photocraft-ui-egui --lib
       - name: App unit tests
-        run: cargo test --locked -p photocraft --bins
+        run: cargo nextest run --profile ci --locked -p photocraft --bins

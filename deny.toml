@@ -8,6 +8,9 @@ yanked = "warn"
 ignore = [
   # Known at import (2026-10-10); each has an owner and must be removed when fixed.
   "RUSTSEC-2024-0436", "RUSTSEC-2026-0192", "RUSTSEC-2026-0206",  # unmaintained: paste, ttf-parser, rustybuzz (informational)
+  # Came in with upstream v0.18 (2026-11-01), unmaintained only (informational): proc-macro-error;
+  # zbus_names, zvariant, zvariant_derive (zbus, Linux portals).
+  "RUSTSEC-2024-0370", "RUSTSEC-2026-0371", "RUSTSEC-2026-0370", "RUSTSEC-2026-0372",
 ]
 
 [licenses]

@@ -115,7 +115,9 @@ mod tests {
         let icon = eframe::icon_data::from_png_bytes(png).unwrap();
         assert_eq!(icon.width, 256);
         assert_eq!(icon.rgba[(10 * 256 + 10) * 4 + 3], 0, "corner is transparent");
-        assert_eq!(icon.rgba[(128 * 256 + 2) * 4 + 3], 255, "the tile is full bleed");
+        // Ubunye: our icon's tile sits inside a soft glow ring, so its edge is not opaque at x = 2
+        // like upstream's full-bleed tile; check the tile's own body instead.
+        assert_eq!(icon.rgba[(128 * 256 + 40) * 4 + 3], 255, "the tile is opaque");
     }
 
     /// The `.ico` build.rs embeds: every size Windows asks for, each a valid PNG or BMP image.

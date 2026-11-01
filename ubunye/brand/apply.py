@@ -119,7 +119,7 @@ def id_scope() -> list[Path]:
     files = walk("packaging", suffixes=TEXT_SUFFIXES + ("AppRun",))
     files += [p for p in walk("packaging/linux") if p.name == "AppRun"]
     files += rust_files()
-    files += walk("apps/photocraft-web/index.html", ".github/workflows/release.yml", ".github/workflows/packaging-lint.yml")
+    files += walk("apps/photocraft-web/index.html", "apps/photocraft-web-boot/index.html", ".github/workflows/release.yml", ".github/workflows/packaging-lint.yml")
     # The DMG artwork is an open item (see REBRANDING.md); its README is upstream documentation.
     files = [p for p in files if not rel(p).startswith("packaging/macos/dmg/") and rel(p) not in CREDIT_FILES]
     return sorted(set(files))
@@ -214,6 +214,7 @@ EXACT_RULES = [
     ("crates/engine/src/shell_commands.rs", '("help.artcraftWebsite", "ArtCraft Website",', '("help.artcraftWebsite", "Upstream PhotoCraft Project",'),
     # Web build: favicon from our icon.
     ("apps/photocraft-web/index.html", "  <title>PhotoCraft</title>\n", f'  <title>{NAME}</title>\n  <link data-trunk rel="icon" type="image/svg+xml" href="../../assets/app-icon/photocraft.svg" />\n'),
+    ("apps/photocraft-web-boot/index.html", "  <title>PhotoCraft</title>\n", f'  <title>{NAME}</title>\n  <link data-trunk rel="icon" type="image/svg+xml" href="../../assets/app-icon/photocraft.svg" />\n'),
     # Linux.
     (f"{LINUX}/{APP_ID}.desktop", "Name=PhotoCraft\n", f"Name={NAME}\n"),
     (f"{LINUX}/{APP_ID}.desktop", "StartupWMClass=photocraft\n", f"StartupWMClass={APP_ID}\n"),
@@ -242,7 +243,7 @@ EXACT_RULES = [
 ]
 
 # Files where every remaining product name in the file is user-visible (after EXACT_RULES).
-PRODUCT_FILES = [WXS, "packaging/windows/portable.txt", "apps/photocraft-web/index.html"]
+PRODUCT_FILES = [WXS, "packaging/windows/portable.txt", "apps/photocraft-web/index.html", "apps/photocraft-web-boot/index.html"]
 
 # ---------------------------------------------------------------------------------------------
 # 4. Product name in Rust and the catalogs
@@ -258,6 +259,7 @@ KEEP_LINE = re.compile(
             r"PhotoCraft (authors|contributors|team)\b",
             r"\.PhotoCraft-face-",  # internal font alias
             r"PhotoCraft Studio CMYK",  # test fixture
+            r"PhotoCraft Coated CMYK",  # baked ICC profile description (crates/cms/profiles), read back by tests
             r"PhotoCraft projects",  # test fixture (folder name)
             r"PhotoCraft é世界",  # test fixture (type layer text)
             r"PhotoCraft transform preview",  # test fixture

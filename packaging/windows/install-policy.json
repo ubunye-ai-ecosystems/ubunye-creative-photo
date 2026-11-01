@@ -1,7 +1,7 @@
 {
   "id": "photocraft",
-  "name": "PhotoCraft",
-  "upgradeCode": "D9660F32-2D0A-4ABE-B73D-17BE25F1542C",
+  "name": "Ubunye Photo",
+  "upgradeCode": "B5F26DFD-A4A7-4D46-8DDF-79537F0A829B",
   "sources": [
     "photocraft.wxs"
   ],
@@ -20,141 +20,141 @@
   "registry": [
     [
       "-1",
-      "Software\\Classes\\Photocraft.PhotoshopDocument\\shell\\open\\command",
+      "Software\\Classes\\UbunyeCreativePhoto.PhotoshopDocument\\shell\\open\\command",
       "",
       "\"[#PhotocraftExe]\" \"%1\""
     ],
     [
       "-1",
-      "Software\\Classes\\Photocraft.Image\\shell\\open\\command",
+      "Software\\Classes\\UbunyeCreativePhoto.Image\\shell\\open\\command",
       "",
       "\"[#PhotocraftExe]\" \"%1\""
     ],
     [
       "-1",
       "Software\\Classes\\.psd\\OpenWithProgids",
-      "Photocraft.PhotoshopDocument",
+      "UbunyeCreativePhoto.PhotoshopDocument",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.psb\\OpenWithProgids",
-      "Photocraft.PhotoshopDocument",
+      "UbunyeCreativePhoto.PhotoshopDocument",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.pdn\\OpenWithProgids",
-      "Photocraft.Image",
+      "UbunyeCreativePhoto.Image",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.ora\\OpenWithProgids",
-      "Photocraft.Image",
+      "UbunyeCreativePhoto.Image",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.kra\\OpenWithProgids",
-      "Photocraft.Image",
+      "UbunyeCreativePhoto.Image",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.krz\\OpenWithProgids",
-      "Photocraft.Image",
+      "UbunyeCreativePhoto.Image",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.png\\OpenWithProgids",
-      "Photocraft.Image",
+      "UbunyeCreativePhoto.Image",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.jpg\\OpenWithProgids",
-      "Photocraft.Image",
+      "UbunyeCreativePhoto.Image",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.jpeg\\OpenWithProgids",
-      "Photocraft.Image",
+      "UbunyeCreativePhoto.Image",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.tif\\OpenWithProgids",
-      "Photocraft.Image",
+      "UbunyeCreativePhoto.Image",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.tiff\\OpenWithProgids",
-      "Photocraft.Image",
+      "UbunyeCreativePhoto.Image",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.webp\\OpenWithProgids",
-      "Photocraft.Image",
+      "UbunyeCreativePhoto.Image",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.gif\\OpenWithProgids",
-      "Photocraft.Image",
+      "UbunyeCreativePhoto.Image",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.bmp\\OpenWithProgids",
-      "Photocraft.Image",
+      "UbunyeCreativePhoto.Image",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.tga\\OpenWithProgids",
-      "Photocraft.Image",
+      "UbunyeCreativePhoto.Image",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.exr\\OpenWithProgids",
-      "Photocraft.Image",
+      "UbunyeCreativePhoto.Image",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.hdr\\OpenWithProgids",
-      "Photocraft.Image",
+      "UbunyeCreativePhoto.Image",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.avif\\OpenWithProgids",
-      "Photocraft.Image",
+      "UbunyeCreativePhoto.Image",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.qoi\\OpenWithProgids",
-      "Photocraft.Image",
+      "UbunyeCreativePhoto.Image",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.ico\\OpenWithProgids",
-      "Photocraft.Image",
+      "UbunyeCreativePhoto.Image",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\Applications\\photocraft.exe",
       "FriendlyAppName",
-      "PhotoCraft"
+      "Ubunye Photo"
     ],
     [
       "-1",
@@ -296,7 +296,7 @@
     ],
     [
       "-1",
-      "Software\\PhotoCraft",
+      "Software\\Ubunye AI Ecosystems\\Ubunye Photo",
       "InstallDir",
       "[INSTALLFOLDER]"
     ]
