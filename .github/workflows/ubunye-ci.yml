@@ -67,7 +67,7 @@ jobs:
           f="ubunye/ci/upstream-failures-$os.txt"
           filter=()
           if [ -f "$f" ]; then
-            expr=$(grep -v '^#' "$f" | awk 'NF==2 {printf "%s(binary_id(=%s) & test(=%s))", (n++ ? " | " : ""), $1, $2}')
+            expr=$(tr -d '\r' <"$f" | grep -v '^#' | awk 'NF==2 {printf "%s(binary_id(=%s) & test(=%s))", (n++ ? " | " : ""), $1, $2}')
             if [ -n "$expr" ]; then filter=(-E "not ($expr)"); echo "skipping upstream-only failures: $expr"; fi
           fi
           cargo nextest run --profile ci --locked --workspace "${filter[@]}"
