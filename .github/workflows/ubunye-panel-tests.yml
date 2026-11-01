@@ -15,10 +15,6 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
-  # Upstream's all-language UI tests draw real CJK, Arabic and Devanagari labels and panic on a
-  # missing glyph, so tests run with the pinned craft-fonts, as upstream's CI does.
-  CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
-  CRAFT_FONTS_REQUIRED: "1"
 jobs:
   test:
     name: panel + app tests (${{ matrix.os }})
@@ -36,16 +32,26 @@ jobs:
       - name: Toolchain (rust-toolchain.toml)
         run: rustup show active-toolchain || rustup toolchain install
       - uses: Swatinem/rust-cache@v2
-      - name: Fonts (craft-fonts, the revision upstream's ci.yml and release.yml pin)
-        uses: actions/checkout@v4
-        with:
-          repository: storytold/craft-fonts
-          ref: b076417b5880bd4154bd22f00695b1d28c6bea83
-          path: craft-fonts
-          persist-credentials: false
-      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
-        with:
-          tool: cargo-nextest@0.9.150
+      # Upstream's all-language UI tests draw real CJK, Arabic and Devanagari labels and panic on a
+      # missing glyph, so tests run with craft-fonts at the revision upstream's CI pins.
+      - name: Fonts (craft-fonts)
+        shell: bash
+        run: |
+          git clone --quiet --no-checkout https://github.com/storytold/craft-fonts "$RUNNER_TEMP/craft-fonts"
+          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach b076417b5880bd4154bd22f00695b1d28c6bea83
+          echo "CRAFT_FONTS_DIR=$RUNNER_TEMP/craft-fonts" >>"$GITHUB_ENV"
+          echo "CRAFT_FONTS_REQUIRED=1" >>"$GITHUB_ENV"
+      - name: cargo-nextest 0.9.150 (the version .config/nextest.toml requires)
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            Linux) url=https://get.nexte.st/0.9.150/linux ;;
+            macOS) url=https://get.nexte.st/0.9.150/mac ;;
+            Windows) url=https://get.nexte.st/0.9.150/windows-tar ;;
+          esac
+          bin="${CARGO_HOME:-$HOME/.cargo}/bin"
+          curl -LsSf "$url" | tar zxf - -C "$bin"
+          cargo nextest --version
       - name: Engine collaboration tests
         run: cargo nextest run --profile ci --locked -p photocraft-engine --lib -E 'test(ubunye_kopano)'
       - name: Panel and UI unit tests
