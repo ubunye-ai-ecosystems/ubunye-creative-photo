@@ -58,7 +58,19 @@ jobs:
       # nextest with upstream's `ci` profile (.config/nextest.toml): one process per test and at
       # most four GPU devices at once; `cargo test` ran the GPU tests on one shared device.
       - name: Test
-        run: cargo nextest run --profile ci --locked --workspace
+        shell: bash
+        run: |
+          # Tests that also fail on unmodified upstream with these same steps on this runner are
+          # skipped on that OS only; ubunye/ci/upstream-failures-<os>.txt lists them with the
+          # baseline run that shows it (lines: <binary id> <test path>, as nextest prints them).
+          os=$(echo "$RUNNER_OS" | tr '[:upper:]' '[:lower:]')
+          f="ubunye/ci/upstream-failures-$os.txt"
+          filter=()
+          if [ -f "$f" ]; then
+            expr=$(grep -v '^#' "$f" | awk 'NF==2 {printf "%s(binary_id(=%s) & test(=%s))", (n++ ? " | " : ""), $1, $2}')
+            if [ -n "$expr" ]; then filter=(-E "not ($expr)"); echo "skipping upstream-only failures: $expr"; fi
+          fi
+          cargo nextest run --profile ci --locked --workspace "${filter[@]}"
       - name: Doctests
         run: cargo test --locked --workspace --doc
       - name: Smoke (import → edit → save → reopen → export)
