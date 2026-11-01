@@ -1,0 +1,49 @@
+# Ubunye: a baseline run of unmodified upstream PhotoCraft main (560beed8) with the same build + test
+# steps as Ubunye's ubunye-ci (toolchain 1.97.0, craft-fonts, nextest --profile ci), to show which
+# Windows/macOS failures are upstream's (Film's ubunye-baseline is the template).
+name: ubunye-baseline
+on:
+  push:
+    branches: [ci/upstream-baseline]
+permissions:
+  contents: read
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+jobs:
+  build-test:
+    name: build + test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fonts (craft-fonts)
+        shell: bash
+        run: |
+          git clone --quiet --no-checkout https://github.com/storytold/craft-fonts "$RUNNER_TEMP/craft-fonts"
+          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach b076417b5880bd4154bd22f00695b1d28c6bea83
+          echo "CRAFT_FONTS_DIR=$RUNNER_TEMP/craft-fonts" >>"$GITHUB_ENV"
+          echo "CRAFT_FONTS_REQUIRED=1" >>"$GITHUB_ENV"
+      - name: Toolchain (1.97.0, as Ubunye pins)
+        shell: bash
+        run: rustup toolchain install 1.97.0 --profile minimal && rustup default 1.97.0
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo-nextest 0.9.150
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            macOS) url=https://get.nexte.st/0.9.150/mac ;;
+            Windows) url=https://get.nexte.st/0.9.150/windows-tar ;;
+          esac
+          bin="${CARGO_HOME:-$HOME/.cargo}/bin"
+          mkdir -p "$bin" && echo "$bin" >>"$GITHUB_PATH"
+          curl -LsSf "$url" | tar zxf - -C "$bin"
+          "$bin/cargo-nextest" --version
+      - name: Build
+        run: cargo build --locked --workspace
+      - name: Test
+        run: cargo nextest run --profile ci --locked --workspace
