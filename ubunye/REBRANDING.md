@@ -76,10 +76,10 @@ used under MIT OR Apache-2.0.
 
 ## Open items
 
-- **macOS bundle and DMG.** The bundle is still `PhotoCraft.app` with executable `PhotoCraft` and
-  `PhotoCraft.icns`, and the DMG background (`packaging/macos/dmg/background.tiff`, outlined text and
-  the kitsune) and Finder layout (`dmg-layout.DS_Store`, volume name `PhotoCraft`) are upstream's.
-  Regenerating them needs `ds_store`/`mac_alias` and new outlined artwork; do it with the final icon.
+- **macOS DMG background.** Since 0.8.0 the bundle is `Ubunye Photo.app` on a volume named
+  `Ubunye Photo` (Finder layout regenerated with `packaging/macos/dmg/generate.py`), so it never
+  replaces upstream's `PhotoCraft.app`; the executable inside keeps the name `PhotoCraft` and the icon
+  `PhotoCraft.icns`. The background's outlined text (`background.svg`/`.tiff`) is still upstream's.
 - **Windows signing** (`packaging/windows/sign.ps1` still signs with description "PhotoCraft" and the
   storytold URL): release signing needs owner approval (ubunye/CLAUDE.md rule 8).
 - **Shared names with an installed upstream copy:** both apps install `photocraft.exe` and register

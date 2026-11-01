@@ -173,6 +173,9 @@ packaging/linux/flatpak/ai.storyteller.photocraft.yml
 packaging/linux/nfpm.yaml
 packaging/linux/package.sh
 packaging/macos/Info.plist.in
+packaging/macos/dmg/README.md
+packaging/macos/dmg/dmg-layout.DS_Store
+packaging/macos/dmg/generate.py
 packaging/macos/package.sh
 packaging/windows/INSTALLATION.md
 packaging/windows/check-install-policy.ps1

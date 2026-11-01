@@ -2,7 +2,7 @@
 # service; slice S4) inside: one download per operating system, as workflow artifacts.
 #   Windows x64: MSI (per-machine; kopanod.exe shared in Program Files\ThabangVision\Collaboration)
 #                + portable zip (kopanod.exe beside photocraft.exe)
-#   macOS:       DMG, kopanod inside PhotoCraft.app/Contents/MacOS (universal)
+#   macOS:       DMG, kopanod inside Ubunye Photo.app/Contents/MacOS (universal)
 #   Linux x86_64: AppImage, .deb, .rpm, .tar.gz (deb/rpm: /usr/lib/photocraft/kopanod, shared
 #                through update-alternatives as /usr/bin/kopanod)
 # Each job also installs and removes its package for real (one app); the test with two apps
@@ -169,7 +169,7 @@ jobs:
         run: ubunye/packaging/macos/collab-package.sh kopano-src/research/kopano/lab --arch universal
       - name: Check the app holds kopanod
         run: |
-          app="target/macos-package/PhotoCraft.app"
+          app="target/macos-package/Ubunye Photo.app"
           lipo -info "$app/Contents/MacOS/kopanod"
           echo "kopanod.version: $(cat "$app/Contents/Resources/kopanod.version")"
           codesign --verify --strict --deep --verbose=2 "$app"
