@@ -51,6 +51,10 @@
 
     <Feature Id="Main" Title="Ubunye Photo" Level="1">
       <ComponentGroupRef Id="PhotocraftFiles" />
+<?ifdef CollabBinDir?>
+      <!-- Ubunye: ThabangVision collaboration (kopanod), from ubunye/packaging/windows/collab.wxs -->
+      <ComponentGroupRef Id="UbunyeCollabFiles" />
+<?endif?>
     </Feature>
 
     <!-- The setup wizard: WixUI_InstallDir without its licence page (the code is MIT OR

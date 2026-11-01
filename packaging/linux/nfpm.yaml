@@ -61,6 +61,9 @@ overrides:
       - libXcursor.so.1()(64bit)
       - libXi.so.6()(64bit)
       - (libvulkan.so.1()(64bit) or libEGL.so.1()(64bit))
+      # Ubunye: links the shared kopanod (ubunye/packaging/linux/postinst.sh.in); Fedora's
+      # alternatives and openSUSE's update-alternatives both provide it. dpkg has it on Debian.
+      - /usr/sbin/update-alternatives
     recommends:
       - mesa-vulkan-drivers
       - xdg-desktop-portal
