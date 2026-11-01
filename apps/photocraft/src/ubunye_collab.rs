@@ -426,7 +426,7 @@ pub fn start_control(existing: Option<(u16, String, Option<PathBuf>)>, home: Opt
         let token_file = token_path(home.as_deref(), port)?;
         write_token(&token_file, &token)?;
         install_gates(services);
-        let rx = crate::control_server::start_on(listener, token, ctx.clone());
+        let rx = crate::control_server::start(listener, token, ctx.clone());
         log::info!("collaboration: control server started on 127.0.0.1:{port} for the collaboration service");
         Ok(Started { link: ControlLink { port, token_file }, rx: Some(rx) })
     })
