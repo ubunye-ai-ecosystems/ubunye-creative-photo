@@ -411,7 +411,7 @@ mod tests {
         let i = s.documents().iter().position(|d| d.doc.id.0 == shared).unwrap();
         assert!(s.set_active(i));
         s.execute("kopano.import", json!({"manifest": a["manifest"], "doc": shared})).unwrap();
-        assert_eq!(s.active().unwrap().history.undo_label().as_deref(), Some("Teammate Update"));
+        assert_eq!(s.active().unwrap().history.undo_label(), Some("Teammate Update"));
     }
 
     #[test]

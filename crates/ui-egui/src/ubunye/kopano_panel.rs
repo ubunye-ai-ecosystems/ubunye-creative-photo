@@ -431,7 +431,7 @@ pub fn paint_icon(p: &egui::Painter, r: Rect, color: Color32) {
 /// The top-bar button (right-hand group): opens or closes the window. `size` is the square box.
 pub fn top_bar_button(app: &mut PhotocraftApp, ui: &mut egui::Ui, size: f32) {
     let (rect, resp) = ui.allocate_exact_size(vec2(size, size), Sense::click());
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, tl!("Share & Collaborate")));
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, tl!("Share & Collaborate")));
     let tint = crate::icons::button_chrome(ui, rect, app.kopano.open, resp.hovered());
     paint_icon(ui.painter(), Rect::from_center_size(rect.center(), vec2(size * 0.62, size * 0.62)), tint);
     app.kopano.widgets.insert("icon:collaborate".into(), rect_of(rect));
@@ -474,14 +474,14 @@ fn button(app: &mut PhotocraftApp, ui: &mut egui::Ui, id: &str, label: &str, sel
 /// A choice between two (the way to work): the chosen one looks pressed.
 fn choice(app: &mut PhotocraftApp, ui: &mut egui::Ui, id: &str, label: &str, selected: bool) -> bool {
     let r = crate::widgets::pill_tab(ui, tr(label), selected);
-    r.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, selected, tr(label)));
+    r.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, selected, tr(label)));
     app.kopano.widgets.insert(format!("button:{id}"), rect_of(r.rect));
     r.clicked()
 }
 
 /// A one-line text field, its rect kept under `id`.
 fn field(app_widgets: &mut BTreeMap<String, [f32; 4]>, ui: &mut egui::Ui, id: &str, text: &mut String, hint: &str) {
-    let r = ui.add(egui::TextEdit::singleline(text).id(egui::Id::new(id)).hint_text(tr(hint)).desired_width(WIDTH - 10.0));
+    let r = ui.add(egui::TextEdit::singleline(text).id(egui::Id::unique(id)).hint_text(tr(hint)).desired_width(WIDTH - 10.0));
     app_widgets.insert(format!("field:{id}"), rect_of(r.rect));
 }
 
@@ -690,11 +690,11 @@ pub fn tick(app: &mut PhotocraftApp, ctx: &egui::Context) {
         } else if free && p.app_alive == Some(false) && !app.kopano.attached.contains(&p.id) && !app.kopano.dismissed.contains(&p.id) {
             // the same saved file, open here: ask (white tiles or a copy are no proof)
             let Some(file) = kopano::read_record(&home, &p.id) else { continue };
-            if let Some(d) = app.session.documents().iter().find(|d| d.path.as_deref() == Some(file.as_str())) {
-                if !app.kopano.offers.contains_key(&p.id) {
-                    app.kopano.offers.insert(p.id.clone(), (p.name.clone(), d.doc.id.0));
-                    ctx.request_repaint();
-                }
+            if let Some(d) = app.session.documents().iter().find(|d| d.path.as_deref() == Some(file.as_str()))
+                && !app.kopano.offers.contains_key(&p.id)
+            {
+                app.kopano.offers.insert(p.id.clone(), (p.name.clone(), d.doc.id.0));
+                ctx.request_repaint();
             }
         }
     }
@@ -732,14 +732,14 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
     // never over the menus and top bars (a remembered position may be up there)
     let room = Rect::from_min_max(Pos2::new(screen.left(), screen.top() + 80.0), screen.max);
     // a long window scrolls instead of running off the screen; as tall as fits where it is now
-    let now_top = ctx.memory(|m| m.area_rect(egui::Id::new("kopano-panel"))).map_or(top, |r| r.top().max(room.top()));
+    let now_top = ctx.memory(|m| m.area_rect(egui::Id::unique("kopano-panel"))).map_or(top, |r| r.top().max(room.top()));
     let max_h = (screen.bottom() - now_top - 40.0).max(200.0);
     // egui keeps a fixed-size window at its first height: size it to last frame's contents
     let want = (app.kopano.content_h + 4.0).clamp(120.0, max_h);
     app.kopano.widgets.retain(|k, _| k.starts_with("icon:"));
     let mut close = false;
     let shown = egui::Window::new(tl!("Share & Collaborate"))
-        .id(egui::Id::new("kopano-panel"))
+        .id(egui::Id::unique("kopano-panel"))
         .title_bar(false)
         .collapsible(false)
         .resizable(false)
@@ -1013,7 +1013,7 @@ fn people_section(app: &mut PhotocraftApp, ui: &mut egui::Ui, p: &kopano::Projec
         let mut email = app.kopano.invite_email.get(&p.id).cloned().unwrap_or_default();
         let id = format!("kopano:invite-{tag}");
         ui.horizontal(|ui| {
-            let r = ui.add(egui::TextEdit::singleline(&mut email).id(egui::Id::new(&id)).hint_text(tr("Teammate's email")).desired_width(WIDTH - 90.0));
+            let r = ui.add(egui::TextEdit::singleline(&mut email).id(egui::Id::unique(&id)).hint_text(tr("Teammate's email")).desired_width(WIDTH - 90.0));
             app.kopano.widgets.insert(format!("field:{id}"), rect_of(r.rect));
             if button(app, ui, &format!("kopano-invite-{tag}"), "Invite", false) {
                 app.kopano.invite_email.insert(p.id.clone(), email.clone());

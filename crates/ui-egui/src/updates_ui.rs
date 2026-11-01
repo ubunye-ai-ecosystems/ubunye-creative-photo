@@ -221,7 +221,8 @@ mod tests {
         at(&mut app, &ctx, 1.0);
         assert!(matches!(app.session.updates.status, Status::Failed { .. }));
         let mut web = PhotocraftApp::new(Session::new(), Services::default());
-        assert!(!menus::is_enabled(&web, "help.checkForUpdates"));
+        // Ubunye: without a check service the item opens the download page, so it stays enabled.
+        assert!(menus::is_enabled(&web, "help.checkForUpdates"));
         at(&mut web, &ctx, 2.0);
         assert_eq!(web.session.updates.status, Status::Idle);
     }
