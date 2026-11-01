@@ -338,12 +338,20 @@ pub fn specs() -> Vec<CommandSpec> {
 mod tests {
     use super::*;
 
+    /// The staging area and bundle cache are one per process (one session per window in the
+    /// app); tests run in parallel threads, so they take turns.
+    static TURN: Mutex<()> = Mutex::new(());
+    fn turn() -> std::sync::MutexGuard<'static, ()> {
+        TURN.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
     fn b64(v: &Value) -> Vec<u8> {
         base64::engine::general_purpose::STANDARD.decode(v.as_str().unwrap()).unwrap()
     }
 
     #[test]
     fn export_then_import_round_trips_and_moves_only_new_tiles() {
+        let _turn = turn();
         let mut s = Session::new();
         s.execute("file.new", json!({"width": 600, "height": 300, "background": "white"})).unwrap();
         s.execute("paint.stroke", json!({"points": [[10, 10, 1], [40, 40, 1]], "size": 9, "color": "#ff0000"})).unwrap();
@@ -381,6 +389,7 @@ mod tests {
 
     #[test]
     fn the_shared_document_is_the_target_never_the_one_in_front() {
+        let _turn = turn();
         let mut s = Session::new();
         s.execute("file.new", json!({"width": 300, "height": 200, "background": "white"})).unwrap();
         let shared = s.active().unwrap().doc.id.0;
@@ -407,6 +416,7 @@ mod tests {
 
     #[test]
     fn the_bundle_cache_forgets_closed_documents() {
+        let _turn = turn();
         let mut s = Session::new();
         s.execute("file.new", json!({"width": 64, "height": 64})).unwrap();
         let first = s.active().unwrap().doc.id.0;
@@ -419,6 +429,7 @@ mod tests {
 
     #[test]
     fn bad_params_are_errors_not_panics() {
+        let _turn = turn();
         let mut s = Session::new();
         assert!(s.execute("kopano.export", json!({})).is_err());
         s.execute("file.new", json!({"width": 8, "height": 8})).unwrap();
