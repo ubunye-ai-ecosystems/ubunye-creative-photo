@@ -183,7 +183,8 @@ fn open_filters_keep_literal_extensions_on_windows_and_macos() {
 
 #[test]
 fn native_services_provide_update_transport() {
-    assert!(native(None).check_updates.is_some());
+    // Ubunye: off (see services.rs); updates come from the download page.
+    assert!(native(None).check_updates.is_none());
 }
 
 #[test]

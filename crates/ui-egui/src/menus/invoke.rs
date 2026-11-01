@@ -63,6 +63,11 @@ fn invoke_early_commands(app: &mut PhotocraftApp, ctx: &egui::Context, id: &str,
         return Some(Ok(json!({"tool": tool})));
     }
     if id == "help.checkForUpdates" {
+        // Ubunye: releases are on our download page; the in-app check (craft-update) only knows
+        // upstream's releases. With a check service wired (tests), upstream's flow still runs.
+        if app.session.updates.check.is_none() {
+            return Some(Ok(crate::links::open(app, ctx, crate::ubunye::PRODUCT_PAGE)));
+        }
         return Some(crate::updates_ui::check(app, ctx, params.clone()));
     }
     if id == "ui.symmetryTransform" {

@@ -9,6 +9,10 @@ pub fn is_enabled(app: &PhotocraftApp, id: &str) -> bool {
     if crate::tool_shortcuts::tool(id).is_some() {
         return true;
     }
+    // Ubunye: without the in-app check, Help › Check for Updates opens the download page.
+    if id == "help.checkForUpdates" && app.session.updates.check.is_none() {
+        return true;
+    }
     if id == "ui.symmetryTransform" {
         return crate::symmetry_ui::can_transform(app);
     }

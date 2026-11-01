@@ -76,6 +76,7 @@ crates/io/src/abr_map.rs
 crates/io/src/camera_raw_xmp.rs
 crates/io/src/lib.rs
 crates/io/src/psd_export.rs
+crates/io/src/psd_export/document.rs
 crates/io/src/psd_import/tests.rs
 crates/io/src/svg/tests.rs
 crates/io/src/xcf.rs

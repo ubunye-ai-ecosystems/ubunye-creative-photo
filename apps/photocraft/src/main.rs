@@ -74,6 +74,8 @@ mod tablet;
 /// Ubunye: ThabangVision collaboration (kopanod beside the app; the control port on demand).
 mod ubunye_collab;
 mod ui_state;
+// Ubunye: kept for upstream merges; the release check is not wired up (services.rs).
+#[allow(dead_code)]
 mod updates;
 mod window_frame;
 

@@ -58,6 +58,36 @@ mod tests {
         }
     }
 
+    /// No update check may reach upstream: craft-update would offer (and install) PhotoCraft
+    /// builds over Ubunye Photo. The app has no check service; Help › Check for Updates opens
+    /// the download page instead.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn update_checks_never_target_upstream() {
+        use std::sync::{Arc, Mutex};
+        let app_info = crate::UPDATE_APP;
+        for s in [app_info.repo.to_string(), app_info.releases_url(), app_info.repo_url()] {
+            assert!(!s.contains("storytold"), "{s}");
+        }
+        assert_eq!(app_info.name, NAME);
+        let opened: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+        let rec = opened.clone();
+        let services = crate::Services {
+            open_url: Some(Box::new(move |u: &str| {
+                rec.lock().unwrap().push(u.to_string());
+                Ok(())
+            })),
+            ..Default::default()
+        };
+        let mut app = crate::PhotocraftApp::new(photocraft_engine::Session::new(), services);
+        assert!(app.session.updates.check.is_none(), "no release check is wired up");
+        let ctx = egui::Context::default();
+        assert!(crate::menus::is_enabled(&app, "help.checkForUpdates"));
+        crate::menus::invoke(&mut app, &ctx, "help.checkForUpdates", serde_json::json!({})).unwrap();
+        assert_eq!(opened.lock().unwrap().as_slice(), [PRODUCT_PAGE.to_string()]);
+        assert_eq!(PRODUCT_PAGE, "https://www.thabangvision.com/tools/photo");
+    }
+
     #[test]
     fn the_credit_and_licence_are_translated() {
         for lang in crate::i18n::Lang::all().filter(|l| l.complete_menus()) {
