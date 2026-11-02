@@ -435,7 +435,7 @@ def window(cfg: dict, exe: Path, cli: Path, imgs: dict[str, Path], out: Path, en
     token = out.parent / "control.token"
     log = open(out / "app-stderr.log", "w")
     proc = subprocess.Popen([str(exe), "--control", str(port), "--control-token-file", str(token),
-                             "--automation-read-root", str(root), "--automation-read-root", str(imgs["church.jpg"].parent),
+                             "--automation-read-root", str(root),
                              "--automation-write-root", str(root)], env=env, stdout=log, stderr=subprocess.STDOUT)
     try:
         s = wait_for_port(proc, port)
