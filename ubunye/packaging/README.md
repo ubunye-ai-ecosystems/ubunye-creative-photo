@@ -82,6 +82,6 @@ input picks the studio-tools commit).
 ## Not done yet (needs the owner)
 
 - Code signing. Without it Windows Smart App Control blocks the programs on new PCs and macOS
-  asks people to allow the app. The workflow has a marked place for the secrets; the release
-  signing in `release.yml` is unchanged.
+  asks people to allow the app. The workflow has a marked place for the secrets (see
+  `ubunye/SIGNING-WINDOWS.md`).
 - Store accounts (Microsoft Store, Apple Developer ID) are not set up.

@@ -119,7 +119,7 @@ def id_scope() -> list[Path]:
     files = walk("packaging", suffixes=TEXT_SUFFIXES + ("AppRun",))
     files += [p for p in walk("packaging/linux") if p.name == "AppRun"]
     files += rust_files()
-    files += walk("apps/photocraft-web/index.html", "apps/photocraft-web-boot/index.html", ".github/workflows/release.yml", ".github/workflows/packaging-lint.yml")
+    files += walk("apps/photocraft-web/index.html", "apps/photocraft-web-boot/index.html")
     # The DMG artwork is an open item (see REBRANDING.md); its README is upstream documentation.
     files = [p for p in files if not rel(p).startswith("packaging/macos/dmg/") and rel(p) not in CREDIT_FILES]
     return sorted(set(files))
@@ -705,7 +705,7 @@ README_MARKER = "<!-- ubunye: upstream README below -->"
 def leak_scope() -> list[Path]:
     files = walk("apps", "crates", "packaging", "assets/app-icon", suffixes=TEXT_SUFFIXES + (".tsv", ".toml"))
     files += [p for p in walk("packaging/linux") if p.name == "AppRun"]
-    files += walk(".github/workflows/release.yml", ".github/workflows/packaging-lint.yml", "Dockerfile")
+    files += walk("Dockerfile")
     return sorted({p for p in files if not rel(p).startswith("packaging/macos/dmg/")})
 
 
