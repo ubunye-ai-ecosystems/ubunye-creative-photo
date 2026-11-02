@@ -7,11 +7,11 @@
     "branch": "main",
     "license": "MIT OR Apache-2.0"
   },
-  "last_checked_at": "2026-11-01T12:00:00Z",
+  "last_checked_at": "2026-11-02T12:00:00Z",
   "last_integrated": {
-    "sha": "560beed83ead6c3373a628c64f2031f7b3ee92c7",
-    "date": "2026-11-01T05:14:18+01:00",
-    "upstream_version": "0.18.0",
+    "sha": "fab871dadb85e7422d0b7c872497ff485ae92da9",
+    "date": "2026-11-01T19:11:02-05:00",
+    "upstream_version": "0.19.0",
     "upstream_tag": null,
     "method": "merge",
     "merged_pr": null,
@@ -35,6 +35,16 @@
       "conflicts": 72,
       "ci": "pending",
       "recorded_at": "2026-11-01T12:00:00Z"
+    },
+    {
+      "sha": "fab871dadb85e7422d0b7c872497ff485ae92da9",
+      "outcome": "merge",
+      "commits": 94,
+      "conflicts": 3,
+      "conflict_hunks": 38,
+      "ci": "pending",
+      "recorded_at": "2026-11-02T12:00:00Z",
+      "note": "branch sync/upstream-2026-11-02; conflicts: workspace version lines (Cargo.toml, Cargo.lock) and atn_cmds.rs params strings (took upstream encoding option, rebranded); bumped 0.8.0 to 0.8.1"
     }
   ]
 }
