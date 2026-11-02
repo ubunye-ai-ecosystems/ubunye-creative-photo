@@ -1,3 +1,5 @@
+> **Ubunye fork:** report vulnerabilities in this distribution as described in [`ubunye/SECURITY.md`](ubunye/SECURITY.md).
+
 # Security Policy
 
 PhotoCraft processes complex document and image formats and exposes CLI, JSON control, and MCP automation. Treat files, paths, metadata, automation requests, and command parameters as potentially malicious.

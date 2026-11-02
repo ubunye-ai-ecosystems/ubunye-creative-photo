@@ -1,0 +1,40 @@
+{
+  "$schema_version": 1,
+  "app": "ubunye-creative-photo",
+  "upstream": {
+    "name": "PhotoCraft",
+    "url": "https://github.com/storytold/photocraft.git",
+    "branch": "main",
+    "license": "MIT OR Apache-2.0"
+  },
+  "last_checked_at": "2026-11-01T12:00:00Z",
+  "last_integrated": {
+    "sha": "560beed83ead6c3373a628c64f2031f7b3ee92c7",
+    "date": "2026-11-01T05:14:18+01:00",
+    "upstream_version": "0.18.0",
+    "upstream_tag": null,
+    "method": "merge",
+    "merged_pr": null,
+    "merged_by": null,
+    "merged_at": null
+  },
+  "pending": null,
+  "history": [
+    {
+      "sha": "5bb768b8f16775431e7a6d49a77bb8fd79cc1be2",
+      "outcome": "initial-import",
+      "commits": 1167,
+      "conflicts": 0,
+      "ci": "not-run",
+      "recorded_at": "2026-10-10T17:09:13Z"
+    },
+    {
+      "sha": "560beed83ead6c3373a628c64f2031f7b3ee92c7",
+      "outcome": "merge",
+      "commits": 6980,
+      "conflicts": 72,
+      "ci": "pending",
+      "recorded_at": "2026-11-01T12:00:00Z"
+    }
+  ]
+}

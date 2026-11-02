@@ -1,47 +1,23 @@
-# PhotoCraft app icon
+# Ubunye Photo app icon
 
-A **nine-tailed kitsune with a brow diamond**: an engraving portrait, seated, looking back at the
-viewer, in the Crafting Apps' owl-template framing (full-bleed field, head and body filling the
-tile, tails running off the edges).
+Ubunye AI Ecosystems artwork from the Ubunye Creative Studio brand system; the letters are an outline from DM Serif
+Display (SIL OFL 1.1), so rendering needs no font. Licence: see `LICENSE.txt`.
 
-## Palette
-
-Exactly three colours:
-
-| Colour | Hex | Used for |
-|---|---|---|
-| Ink | `#0b0b0c` | line work and contours |
-| Paper | `#efe9dc` | the figure |
-| PhotoCraft blue (app colour) | `#2f7bf5` | the full-bleed field |
+This replaces upstream PhotoCraft's kitsune icon. The master lives at
+`ubunye/brand/assets/icon.svg`; `python -I ubunye/brand/apply.py` copies it here and renders the rest.
 
 ## Geometry
 
-A 512-unit tile (`viewBox="0 0 512 512"`), rounded square with `rx=112`, no border. The macOS
-renders pad it onto Apple's 824/1024 icon grid; the Windows and Linux renders crop 22 units off
-each side so the figure reads at 16–48 px.
-
-## Provenance
-
-The owner's original drawing, made in ArtCraft (2880 px, engraving style, keyed to the palette),
-vectorised with craftrules `assets/logo-options/_tools/vectorize_tile.py`. The source PNG stays in
-craftrules at `assets/app-icons/photocraft/source.png`. License: see `LICENSE.txt`.
+A 512-unit tile (`viewBox="0 0 512 512"`), with its margin built in. The macOS render pads it
+onto Apple's 824/1024 icon grid; Windows and Linux use it as is, and 32 px and below use
+`icon-small.svg` (fewer, thicker rays, no glow) so the art reads at small sizes.
 
 ## Files
 
-- `photocraft.svg`: canonical master (traced at 2048 px).
-- `photocraft-small.svg`: lighter trace (traced at 1024 px); also the hicolor scalable icon.
+- `photocraft.svg`: copy of the master. `photocraft-small.svg`: copy of `icon-small.svg`, the 32 px and below art.
 - `photocraft-1024.png`: 1024 px render on the macOS grid.
 - `photocraft.icns`: macOS bundle icon (`CFBundleIconFile`).
-- `photocraft.ico`: Windows icon, 16–256 px, embedded in the `.exe` by `apps/photocraft/build.rs`.
-- `hicolor/<size>/apps/ai.storyteller.photocraft.png` (16–512) and `hicolor/scalable/...svg`:
-  Linux icon theme.
+- `photocraft.ico`: Windows icon, 16 to 256 px, embedded in the `.exe` by `apps/photocraft/build.rs`.
+- `hicolor/<size>/apps/org.ubunye.creative.photo.png` (16 to 512) and `hicolor/scalable/apps/org.ubunye.creative.photo.svg`: Linux icon theme.
 
-The app also sets the window icon and Wayland app ID at runtime (`apps/photocraft/src/app_icon.rs`,
-`main.rs`). On Windows the taskbar shows the icon of the Start Menu shortcut that launches the
-exe, so the MSI's `<Icon Id>` keeps the `.exe` extension (ICE50); `app_icon.rs` documents the
-details and tests the `.ico` sizes and the WiX icon references.
-
-## Regenerate
-
-Replace `photocraft.svg` (and `photocraft-small.svg`), then run `packaging/icons.sh`. It needs
-`resvg`, plus `iconutil` on macOS; the `.ico` is packed by `cargo xtask ico`.
+The file names `photocraft.*` stay as upstream has them, so build scripts need no change.

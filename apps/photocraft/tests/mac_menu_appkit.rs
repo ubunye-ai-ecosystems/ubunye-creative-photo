@@ -22,6 +22,18 @@ fn main() {
     use photocraft_ui_egui::native_menu;
     use serde_json::json;
 
+    // Without a harness nothing answers cargo-nextest's `--list`, so it ran the whole test as its
+    // listing and failed on the output. List the one test, as libtest's terse format would, and
+    // nothing for `--ignored` (nextest asks twice). Running it passes `<name> --exact`, which falls
+    // through to the test below.
+    let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|a| a == "--list") {
+        if !args.iter().any(|a| a == "--ignored") {
+            println!("mac_menu_appkit: test");
+        }
+        return;
+    }
+
     let mtm = MainThreadMarker::new().expect("harness = false runs on the main thread");
     let nsapp = NSApplication::sharedApplication(mtm);
     nsapp.finishLaunching();
@@ -97,13 +109,13 @@ fn main() {
     // The Mac layout, as AppKit has it.
     let bar = main_menu();
     let tops: Vec<String> = (0..bar.numberOfItems()).filter_map(|i| bar.itemAtIndex(i)?.submenu()).map(|m| m.title().to_string()).collect();
-    assert_eq!(tops, ["PhotoCraft", "File", "Edit", "Image", "Layer", "Type", "Select", "Filter", "View", "Window", "Help"]);
-    let app_menu = submenu(&bar, "PhotoCraft");
+    assert_eq!(tops, ["Ubunye Photo", "File", "Edit", "Image", "Layer", "Type", "Select", "Filter", "View", "Window", "Help"]);
+    let app_menu = submenu(&bar, "Ubunye Photo");
     let names = titles(&app_menu);
-    for want in ["About PhotoCraft", "Settings", "Language", "Appearance", "Hide PhotoCraft", "Quit PhotoCraft"] {
+    for want in ["About Ubunye Photo", "Settings", "Language", "Appearance", "Hide Ubunye Photo", "Quit Ubunye Photo"] {
         assert!(names.iter().any(|n| n == want), "{want} missing from the app menu: {names:?}");
     }
-    let quit = app_menu.itemAtIndex(index(&app_menu, "Quit PhotoCraft")).expect("Quit");
+    let quit = app_menu.itemAtIndex(index(&app_menu, "Quit Ubunye Photo")).expect("Quit");
     assert_eq!(quit.keyEquivalent().to_string(), "q");
     assert_eq!(quit.keyEquivalentModifierMask(), NSEventModifierFlags::Command);
     assert!(!titles(&submenu(&bar, "File")).iter().any(|n| n == "Exit"), "Exit moved to the app menu as Quit");
@@ -164,6 +176,31 @@ fn main() {
     assert!(raw.events.is_empty(), "↩ in the menu is a click: {:?}", raw.events);
     frame(&mut app, raw);
     assert_eq!(app.ui.extras.rulers, !rulers, "↩ on Rulers toggled it");
+
+    // Window ends with the open documents (#2991). Opening one rebuilds only the Window menu,
+    // which AppKit still knows as its Window menu; choosing a row brings that document forward.
+    app.run("file.new", json!({"width": 32, "height": 32})).expect("a second document");
+    frame(&mut app, egui::RawInput::default());
+    assert!(Retained::as_ptr(&bar) == Retained::as_ptr(&main_menu()), "a new document rebuilt only the Window menu");
+    let window = submenu(&main_menu(), "Window");
+    assert!(nsapp.windowsMenu().is_some_and(|w| Retained::as_ptr(&w) == Retained::as_ptr(&window)), "AppKit knows the new Window menu");
+    let names: Vec<String> = app.session.documents().iter().map(|d| d.doc.name.clone()).collect();
+    // The last rows (both documents are "Untitled").
+    let rows = [window.numberOfItems() - 2, window.numberOfItems() - 1];
+    let shown: Vec<String> = rows.iter().filter_map(|&i| window.itemAtIndex(i)).map(|it| it.title().to_string()).collect();
+    assert_eq!(shown, names, "in tab order, after Bring All to Front: {:?}", titles(&window));
+    let checked = |menu: &NSMenu, at: isize| menu.itemAtIndex(at).is_some_and(|it| it.state() == 1);
+    assert!(!checked(&window, rows[0]) && checked(&window, rows[1]), "the active document is checked");
+    dequeue(&other());
+    window.performActionForItemAtIndex(rows[0]);
+    let mut raw = egui::RawInput::default();
+    if let Some(m) = app.services.native_menu.as_mut() {
+        m.raw_input(&mut raw);
+    }
+    frame(&mut app, raw);
+    assert_eq!(app.session.active_index(), Some(0), "choosing the first row brought it forward");
+    let window = submenu(&main_menu(), "Window");
+    assert!(checked(&window, rows[0]) && !checked(&window, rows[1]), "the check moved in place");
 
     println!("mac_menu_appkit: ok");
 }

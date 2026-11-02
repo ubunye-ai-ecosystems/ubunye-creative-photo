@@ -6,14 +6,44 @@
 <dict>
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
+  <!-- UI translations are embedded in Rust; declare them for AppKit's system dialogs.
+       Keep in sync with LANGUAGES in crates/ui-egui/src/i18n/mod.rs. -->
+  <key>CFBundleLocalizations</key>
+  <array>
+    <string>en</string>
+    <string>ja</string>
+    <string>zh-Hans</string>
+    <string>zh-Hant</string>
+    <string>es</string>
+    <string>ru</string>
+    <string>uk</string>
+    <string>sr</string>
+    <string>cs</string>
+    <string>fr</string>
+    <string>id</string>
+    <string>ko</string>
+    <string>pl</string>
+    <string>de</string>
+    <string>pt-BR</string>
+    <string>el</string>
+    <string>nl</string>
+    <string>it</string>
+    <string>hu</string>
+    <string>tr</string>
+    <string>vi</string>
+    <string>sv</string>
+    <string>fi</string>
+    <string>da</string>
+    <string>nb</string>
+  </array>
   <key>CFBundleDisplayName</key>
-  <string>PhotoCraft</string>
+  <string>Ubunye Photo</string>
   <key>CFBundleName</key>
-  <string>PhotoCraft</string>
+  <string>Ubunye Photo</string>
   <key>CFBundleExecutable</key>
   <string>PhotoCraft</string>
   <key>CFBundleIdentifier</key>
-  <string>ai.storyteller.photocraft</string>
+  <string>org.ubunye.creative.photo</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundlePackageType</key>
@@ -43,16 +73,16 @@
   <key>NSRequiresAquaSystemAppearance</key>
   <false/>
   <key>NSHumanReadableCopyright</key>
-  <string>Copyright © the PhotoCraft authors. MIT OR Apache-2.0.</string>
+  <string>Copyright © the PhotoCraft authors and Ubunye AI Ecosystems. MIT OR Apache-2.0.</string>
 
-  <!-- Photocraft's own format. -->
+  <!-- PhotoCraft's own format. -->
   <key>UTExportedTypeDeclarations</key>
   <array>
     <dict>
       <key>UTTypeIdentifier</key>
-      <string>ai.storyteller.photocraft.document</string>
+      <string>org.ubunye.creative.photo.document</string>
       <key>UTTypeDescription</key>
-      <string>PhotoCraft Document</string>
+      <string>Ubunye Photo Document</string>
       <key>UTTypeConformsTo</key>
       <array>
         <string>public.data</string>
@@ -65,7 +95,7 @@
         <key>public.filename-extension</key>
         <array><string>pcraft</string></array>
         <key>public.mime-type</key>
-        <array><string>application/x-photocraft</string></array>
+        <array><string>application/x-ubunye-creative-photo</string></array>
       </dict>
     </dict>
   </array>
@@ -74,7 +104,7 @@
   <array>
     <dict>
       <key>UTTypeIdentifier</key>
-      <string>ai.storyteller.photocraft.ora</string>
+      <string>org.ubunye.creative.photo.ora</string>
       <key>UTTypeDescription</key>
       <string>OpenRaster Image</string>
       <key>UTTypeConformsTo</key>
@@ -89,7 +119,22 @@
     </dict>
     <dict>
       <key>UTTypeIdentifier</key>
-      <string>ai.storyteller.photocraft.pdn</string>
+      <string>org.ubunye.creative.photo.kra</string>
+      <key>UTTypeDescription</key>
+      <string>Krita Document</string>
+      <key>UTTypeConformsTo</key>
+      <array><string>public.data</string><string>public.image</string></array>
+      <key>UTTypeTagSpecification</key>
+      <dict>
+        <key>public.filename-extension</key>
+        <array><string>kra</string><string>krz</string></array>
+        <key>public.mime-type</key>
+        <array><string>application/x-krita</string></array>
+      </dict>
+    </dict>
+    <dict>
+      <key>UTTypeIdentifier</key>
+      <string>org.ubunye.creative.photo.pdn</string>
       <key>UTTypeDescription</key>
       <string>Paint.NET Document</string>
       <key>UTTypeConformsTo</key>
@@ -120,7 +165,7 @@
     </dict>
     <dict>
       <key>UTTypeIdentifier</key>
-      <string>ai.storyteller.photocraft.qoi</string>
+      <string>org.ubunye.creative.photo.qoi</string>
       <key>UTTypeDescription</key>
       <string>QOI Image</string>
       <key>UTTypeConformsTo</key>
@@ -140,7 +185,7 @@
   <array>
     <dict>
       <key>CFBundleTypeName</key>
-      <string>PhotoCraft Document</string>
+      <string>Ubunye Photo Document</string>
       <key>CFBundleTypeRole</key>
       <string>Editor</string>
       <key>LSHandlerRank</key>
@@ -148,7 +193,7 @@
       <key>CFBundleTypeIconFile</key>
       <string>PhotoCraft</string>
       <key>LSItemContentTypes</key>
-      <array><string>ai.storyteller.photocraft.document</string></array>
+      <array><string>org.ubunye.creative.photo.document</string></array>
     </dict>
     <dict>
       <key>CFBundleTypeName</key>
@@ -184,9 +229,10 @@
         <string>com.ilm.openexr-image</string>
         <string>public.radiance</string>
         <string>public.avif</string>
-        <string>ai.storyteller.photocraft.qoi</string>
-        <string>ai.storyteller.photocraft.pdn</string>
-        <string>ai.storyteller.photocraft.ora</string>
+        <string>org.ubunye.creative.photo.qoi</string>
+        <string>org.ubunye.creative.photo.pdn</string>
+        <string>org.ubunye.creative.photo.ora</string>
+        <string>org.ubunye.creative.photo.kra</string>
       </array>
     </dict>
   </array>

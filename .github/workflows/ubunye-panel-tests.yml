@@ -1,0 +1,61 @@
+# Ubunye: the Share & Collaborate panel's tests and the app's own unit tests, on Windows and
+# Linux, without the full workspace (ubunye-ci) or GPU canvas tests. Run on demand or on a
+# push to the collaboration branch.
+name: ubunye-panel-tests
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [develop, feature/kopano-panel, "sync/**"]
+    paths: ["crates/**", "apps/**", "Cargo.lock", ".github/workflows/ubunye-panel-tests.yml"]
+permissions:
+  contents: read
+concurrency:
+  group: ubunye-panel-tests-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+jobs:
+  test:
+    name: panel + app tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Linux packages
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev libwayland-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libgtk-3-dev mesa-vulkan-drivers
+      - name: Toolchain (rust-toolchain.toml)
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      # Upstream's all-language UI tests draw real CJK, Arabic and Devanagari labels and panic on a
+      # missing glyph, so tests run with craft-fonts at the revision upstream's CI pins.
+      - name: Fonts (craft-fonts)
+        shell: bash
+        run: |
+          git clone --quiet --no-checkout https://github.com/storytold/craft-fonts "$RUNNER_TEMP/craft-fonts"
+          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach b076417b5880bd4154bd22f00695b1d28c6bea83
+          echo "CRAFT_FONTS_DIR=$RUNNER_TEMP/craft-fonts" >>"$GITHUB_ENV"
+          echo "CRAFT_FONTS_REQUIRED=1" >>"$GITHUB_ENV"
+      - name: cargo-nextest 0.9.150 (the version .config/nextest.toml requires)
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            Linux) url=https://get.nexte.st/0.9.150/linux ;;
+            macOS) url=https://get.nexte.st/0.9.150/mac ;;
+            Windows) url=https://get.nexte.st/0.9.150/windows-tar ;;
+          esac
+          bin="${CARGO_HOME:-$HOME/.cargo}/bin"
+          mkdir -p "$bin" && echo "$bin" >>"$GITHUB_PATH"
+          curl -LsSf "$url" | tar zxf - -C "$bin"
+          "$bin/cargo-nextest" --version
+      - name: Engine collaboration tests
+        run: cargo nextest run --profile ci --locked -p photocraft-engine --lib -E 'test(ubunye_kopano)'
+      - name: Panel and UI unit tests
+        run: cargo nextest run --profile ci --locked -p photocraft-ui-egui --lib
+      - name: App unit tests
+        run: cargo nextest run --profile ci --locked -p photocraft --bins

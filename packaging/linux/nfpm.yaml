@@ -13,8 +13,8 @@ release: 1
 section: graphics
 priority: optional
 maintainer: ${PHOTOCRAFT_MAINTAINER}
-vendor: Learning Machines LLC
-homepage: https://getartcraft.com/apps/photocraft
+vendor: Ubunye AI Ecosystems
+homepage: https://www.thabangvision.com/tools/photo
 license: MIT OR Apache-2.0
 description: |-
   Open-source, native image editor with familiar, professional tools.
@@ -61,6 +61,9 @@ overrides:
       - libXcursor.so.1()(64bit)
       - libXi.so.6()(64bit)
       - (libvulkan.so.1()(64bit) or libEGL.so.1()(64bit))
+      # Ubunye: links the shared kopanod (ubunye/packaging/linux/postinst.sh.in); Fedora's
+      # alternatives and openSUSE's update-alternatives both provide it. dpkg has it on Debian.
+      - /usr/sbin/update-alternatives
     recommends:
       - mesa-vulkan-drivers
       - xdg-desktop-portal
@@ -75,6 +78,12 @@ contents:
   - src: ${STAGE}/usr/share/
     dst: /usr/share/
     type: tree
+  # Debian's zsh reads vendor-completions, not /usr/share/zsh/site-functions as Fedora's and
+  # openSUSE's do (its debian/rules sets --enable-additional-fpath).
+  - src: /usr/share/zsh/site-functions/_photocraft-cli
+    dst: /usr/share/zsh/vendor-completions/_photocraft-cli
+    type: symlink
+    packager: deb
 
 scripts:
   postinstall: packaging/linux/postinst.sh

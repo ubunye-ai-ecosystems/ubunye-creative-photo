@@ -46,6 +46,9 @@ pub struct DocM {
     pub layers: Vec<LayerM>,
     pub channels: Vec<ChannelM>,
     pub guides: Guides,
+    /// The rulers' zero point in document pixels (absent in older files: the top-left).
+    #[serde(default)]
+    pub ruler_origin: [f64; 2],
     pub selection: Option<SurfaceM>,
     pub metadata: MetadataM,
     pub global_light: GlobalLight,
@@ -59,6 +62,9 @@ pub struct DocM {
     /// The temporary Quick Mask channel (saved while Quick Mask mode is on).
     #[serde(default)]
     pub quick_mask: Option<ChannelM>,
+    /// Quick Mask was entered with no selection.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub quick_mask_unselected: bool,
     /// Patterns stored with the document.
     #[serde(default)]
     pub patterns: Vec<PatternM>,
@@ -81,6 +87,9 @@ pub struct DocM {
     /// Window › Timeline.
     #[serde(default)]
     pub timeline: Option<photocraft_doc::Timeline>,
+    /// The JPEG quality / WebP encoding File › Save reuses.
+    #[serde(default, skip_serializing_if = "photocraft_doc::FileEncoding::is_empty")]
+    pub file_encoding: photocraft_doc::FileEncoding,
     /// Image › Analysis: measurement scale, count groups, ruler.
     #[serde(default)]
     pub measurement: photocraft_doc::Measurement,
@@ -164,6 +173,10 @@ pub struct SurfaceM {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct VideoDataM {
     pub frames: Vec<SurfaceM>,
+    /// Optional for backward compatibility with native documents created before original
+    /// frame snapshots were stored.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub original_frames: Option<Vec<SurfaceM>>,
     pub source: photocraft_doc::VideoSource,
     pub fps: f32,
     #[serde(default)]
@@ -229,6 +242,9 @@ pub struct LayerM {
     pub advanced: photocraft_doc::AdvancedBlending,
     #[serde(default)]
     pub video: Option<VideoDataM>,
+    /// The layer's own XMP packet (missing in older files = none).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub xmp: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -243,6 +259,9 @@ pub enum ContentM {
         /// Artboard (Layer › New › Artboard).
         #[serde(default)]
         artboard: Option<photocraft_doc::Artboard>,
+        /// A Photoshop Frame's stroke, drawn along the group's vector mask.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        frame_stroke: Option<ShapeStroke>,
     },
     Adjustment {
         adjustment: Adjustment,
@@ -281,12 +300,20 @@ pub enum ContentM {
         stroke: Option<ShapeStroke>,
         #[serde(default)]
         live: Option<LiveShape>,
+        /// The path's density as the fill's mask; older files have none (100 %).
+        #[serde(default = "full_density")]
+        density: f32,
+        /// The path's feather in px; older files have none.
+        #[serde(default)]
+        feather: f32,
     },
     Smart {
         /// Shared source identity; older bundles did not record it.
         #[serde(default)]
         contents_id: Option<u64>,
         source: SmartSourceM,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        vector_preview: Option<VectorPreviewM>,
         transform: Affine,
         smart_filters: Vec<SmartFilter>,
         cache: Option<SurfaceM>,
@@ -303,6 +330,17 @@ pub enum ContentM {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         perspective: Option<[f64; 9]>,
     },
+}
+
+/// The native source remains separate from this optional display-only SVG blob.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct VectorPreviewM {
+    pub source_hash: [u8; 32],
+    pub svg: Hash,
+}
+
+fn full_density() -> f32 {
+    1.0
 }
 
 fn yes() -> bool {
@@ -370,5 +408,18 @@ mod channel_tests {
         assert_eq!(c.color, photocraft_doc::AlphaChannel::DEFAULT_COLOR);
         assert_eq!(c.opacity, 0.5);
         assert_eq!(c.indicates, photocraft_doc::ColorIndicates::MaskedAreas);
+    }
+}
+
+#[cfg(test)]
+mod shape_tests {
+    use super::*;
+
+    /// Shapes saved before Density and Feather load at 100 % and no feather.
+    #[test]
+    fn older_shapes_load_at_full_density_without_feather() {
+        let old = serde_json::json!({ "kind": "shape", "fill": null, "cache": null, "psd_raw": null });
+        let ContentM::Shape { density, feather, .. } = serde_json::from_value(old).unwrap() else { panic!("a shape") };
+        assert_eq!((density, feather), (1.0, 0.0));
     }
 }

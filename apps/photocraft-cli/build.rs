@@ -12,15 +12,23 @@ fn main() -> std::io::Result<()> {
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
         return Ok(());
     }
+    // Printing to PDF (winprint's `PdfCreateRenderer`) imports Windows.Data.Pdf.dll, which
+    // stripped Windows images (NTLite, some N/LTSC builds) lack. A load-time import stops the exe
+    // from starting at all ("windows.data.pdf.dll was not found", #5884), so load it on first use;
+    // the print command checks for it first and reports an error instead.
+    if std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc") {
+        println!("cargo:rustc-link-arg-bins=/DELAYLOAD:windows.data.pdf.dll");
+        println!("cargo:rustc-link-arg-bins=delayimp.lib");
+    }
     let mut res = winresource::WindowsResource::new();
     // FileVersion / ProductVersion strings and the numeric FILEVERSION / PRODUCTVERSION are left
     // to `WindowsResource::new`, which reads the Cargo package version. A pre-release such as
     // `1.2.3-rc.1` stays in the strings; the numeric fields are `1.2.3.0`.
     res.set_icon("../../assets/app-icon/photocraft.ico")
-        .set("ProductName", "PhotoCraft")
-        .set("FileDescription", "PhotoCraft command-line interface")
-        .set("CompanyName", "Learning Machines LLC")
-        .set("LegalCopyright", "Copyright (c) the PhotoCraft authors. MIT OR Apache-2.0.")
+        .set("ProductName", "Ubunye Photo")
+        .set("FileDescription", "Ubunye Photo command-line interface")
+        .set("CompanyName", "Ubunye AI Ecosystems")
+        .set("LegalCopyright", "Copyright (c) the PhotoCraft authors and Ubunye AI Ecosystems. MIT OR Apache-2.0.")
         .set("OriginalFilename", "photocraft-cli.exe")
         .set("InternalName", "photocraft-cli");
     if let Err(err) = res.compile() {
