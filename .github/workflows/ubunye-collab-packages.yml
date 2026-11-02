@@ -8,7 +8,7 @@
 # Each job also installs and removes its package for real (one app); the test with two apps
 # is ubunye-collab-interop.yml in Ubunye Light.
 # See ubunye/packaging/README.md. Test builds only: nothing is released or uploaded anywhere,
-# and this workflow uses no signing secrets (release.yml keeps the real signing).
+# and this workflow uses no signing secrets (signing is not set up yet; see ubunye/SIGNING-WINDOWS.md).
 name: ubunye-collab-packages
 
 on:
@@ -48,7 +48,7 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-      # Embedded fonts at upstream's pin (its release.yml and ci.yml): without them the app panics
+      # Embedded fonts at upstream's pin (its ci.yml and release builds): without them the app panics
       # drawing CJK, Arabic or Devanagari on machines lacking such a system font. REQUIRED makes
       # the build fail rather than ship without them.
       - name: Fonts (craft-fonts)
@@ -80,7 +80,7 @@ jobs:
             . -> target
             kopano-src/research/kopano/lab -> target
       # package.ps1 passes -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext, so the
-      # extensions are installed globally first, as release.yml does.
+      # extensions are installed globally first, as upstream's release workflow does.
       - name: Install WiX
         shell: pwsh
         run: |
@@ -90,7 +90,7 @@ jobs:
         shell: bash
         run: printf '[toolchain]\nchannel = "%s"\n' "$KOPANO_RUST" > kopano-src/research/kopano/lab/rust-toolchain.toml
       # FUTURE CODE SIGNING (Windows): when a certificate or Azure Trusted Signing exists, give
-      # this step the WINDOWS_CERTIFICATE / AZURE_* secrets exactly as release.yml does (in the
+      # this step the WINDOWS_CERTIFICATE / AZURE_* secrets exactly as upstream's release workflow does (in the
       # `release` environment). sign.ps1 then signs photocraft.exe, photocraft-cli.exe,
       # kopanod.exe and the MSI. Without them everything is unsigned and Smart App Control
       # blocks it on new PCs.
@@ -126,12 +126,12 @@ jobs:
 
   macos:
     name: macOS universal
-    # Ubunye: standard runner (free on public repos), as release.yml.
+    # Ubunye: standard runner (free on public repos), as upstream's release workflow.
     runs-on: macos-15
     timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
-      # Embedded fonts at upstream's pin (its release.yml and ci.yml): without them the app panics
+      # Embedded fonts at upstream's pin (its ci.yml and release builds): without them the app panics
       # drawing CJK, Arabic or Devanagari on machines lacking such a system font. REQUIRED makes
       # the build fail rather than ship without them.
       - name: Fonts (craft-fonts)
@@ -163,7 +163,7 @@ jobs:
             . -> target
             kopano-src/research/kopano/lab -> target
       # FUTURE CODE SIGNING (macOS): run packaging/macos/import-cert.sh with the APPLE_* secrets
-      # and pass APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID, as release.yml does. Without them the
+      # and pass APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID, as upstream's release workflow does. Without them the
       # app is ad-hoc signed: Gatekeeper asks people to allow it in System Settings.
       - name: Build and package (DMG)
         run: ubunye/packaging/macos/collab-package.sh kopano-src/research/kopano/lab --arch universal
@@ -183,14 +183,14 @@ jobs:
 
   linux:
     name: Linux x86_64
-    # Oldest hosted image: glibc 2.35, as release.yml.
+    # Oldest hosted image: glibc 2.35, as upstream's release workflow.
     runs-on: ubuntu-22.04
     timeout-minutes: 120
     env:
       NFPM_VERSION: 2.47.0
     steps:
       - uses: actions/checkout@v4
-      # Embedded fonts at upstream's pin (its release.yml and ci.yml): without them the app panics
+      # Embedded fonts at upstream's pin (its ci.yml and release builds): without them the app panics
       # drawing CJK, Arabic or Devanagari on machines lacking such a system font. REQUIRED makes
       # the build fail rather than ship without them.
       - name: Fonts (craft-fonts)
