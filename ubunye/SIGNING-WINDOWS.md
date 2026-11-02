@@ -15,8 +15,10 @@ Windows checks every downloaded program for a code signature.
 
 ## What the build already does
 
-The release workflow (`.github/workflows/release.yml`, job for Windows) calls
-`packaging/windows/sign.ps1` on the `.exe` and the `.msi`. That script knows two ways to sign:
+The installers are built by `.github/workflows/ubunye-collab-packages.yml` (the old
+`release.yml` was removed on 2026-11-02; it was never used to publish). Its Windows job runs
+`packaging/windows/package.ps1`, which calls `packaging/windows/sign.ps1` on the `.exe` and the
+`.msi` and signs only when the secrets below are set (none are today). That script knows two ways to sign:
 
 | Way | Secrets it reads |
 | --- | --- |
@@ -37,7 +39,7 @@ branch can use.
    authority must keep the signing key on hardware (a USB token or a cloud key store). You cannot
    download it as a file, so the `WINDOWS_CERTIFICATE` path only works for old certificates.
 
-So whichever option you pick below, `sign.ps1` or `release.yml` needs a small change. Our rules
+So whichever option you pick below, `sign.ps1` or `ubunye-collab-packages.yml` needs a small change. Our rules
 (`ubunye/CLAUDE.md`, rule 8) say signing changes need your approval first, so that change is not made yet.
 
 ## Option 1 (recommended): SignPath Foundation, free
@@ -54,7 +56,7 @@ Their conditions ([terms](https://signpath.org/terms)):
   (unsigned) release on GitHub first.
 * A **code signing policy** page on our website that names who can approve a signature.
   A page at `thabangvision.com/tools/code-signing` would do.
-* The build must be fully automatic from the source in the repository. **We pass** (release.yml).
+* The build must be fully automatic from the source in the repository. **We pass** (ubunye-collab-packages.yml).
 
 The signature will say **"SignPath Foundation"** as publisher, not Ubunye. That is the price of free.
 

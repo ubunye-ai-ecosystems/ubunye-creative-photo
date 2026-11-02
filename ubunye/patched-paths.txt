@@ -1,5 +1,15 @@
 # Upstream files modified by Ubunye (one path per line). Used for conflict-hotspot reports.
+.coderabbit.yaml
+.github/dependabot.yml
+.github/workflows/ci.yml
+.github/workflows/docs.yml
+.github/workflows/freebsd.yml
+.github/workflows/nix.yml
+.github/workflows/packaging-lint.yml
+.github/workflows/perf-nightly.yml
 .github/workflows/release.yml
+.github/workflows/sonarcloud.yml
+.github/workflows/windows-arm64.yml
 AGENTS.md
 ATTRIBUTION.md
 Cargo.lock
@@ -19,6 +29,7 @@ apps/photocraft/src/app_dirs.rs
 apps/photocraft/src/app_dirs/tests.rs
 apps/photocraft/src/app_icon.rs
 apps/photocraft/src/crash_guard.rs
+apps/photocraft/src/external_svg.rs
 apps/photocraft/src/main.rs
 apps/photocraft/src/screen_color.rs
 apps/photocraft/src/services.rs
