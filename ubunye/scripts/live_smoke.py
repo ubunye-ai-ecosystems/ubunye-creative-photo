@@ -442,11 +442,17 @@ def window(cfg: dict, exe: Path, cli: Path, imgs: dict[str, Path], out: Path, en
         f = s.makefile("rw", encoding="utf-8", newline="\n")
 
         def call(method: str, params: dict | None = None, name: str | None = None) -> dict:
-            f.write(json.dumps({"id": method, "method": method, "params": params or {}}) + "\n")
-            f.flush()
-            reply = json.loads(f.readline())
-            check(reply.get("ok") is True, name or f"control {method}", json.dumps(reply)[:300])
-            return reply.get("result")
+            # the port can open before the first frame: until then the app asks to be asked again
+            deadline = time.time() + 180
+            while True:
+                f.write(json.dumps({"id": method, "method": method, "params": params or {}}) + "\n")
+                f.flush()
+                reply = json.loads(f.readline())
+                if "starting" in str(reply.get("error")) and time.time() < deadline:
+                    time.sleep(2)
+                    continue
+                check(reply.get("ok") is True, name or f"control {method}", json.dumps(reply)[:300])
+                return reply.get("result")
 
         call("auth", {"token": token.read_text().strip()}, "the app window accepts its control token")
         call("ui.inspect", None, "the app window answers ui.inspect")
