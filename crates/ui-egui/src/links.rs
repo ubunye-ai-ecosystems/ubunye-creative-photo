@@ -13,6 +13,8 @@ pub const ARTCRAFT_WEBSITE: &str = crate::ubunye::UPSTREAM;
 pub const APP_PAGE: &str = crate::ubunye::PRODUCT_PAGE;
 pub const GITHUB: &str = crate::ubunye::SOURCE;
 pub const ISSUES: &str = crate::ubunye::ISSUES;
+/// Upstream's tutorials page; ours is the product page.
+pub const TUTORIALS: &str = crate::ubunye::PRODUCT_PAGE;
 
 /// Help-menu link commands: (id, url). Labels live in `menus::UI_COMMANDS`.
 pub const COMMANDS: &[(&str, &str)] =
