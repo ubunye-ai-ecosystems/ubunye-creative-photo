@@ -242,7 +242,7 @@ pub(super) fn case_sensitive_destination(path: &std::path::Path) -> Option<bool>
     let parent = path.ancestors().skip(1).find(|ancestor| ancestor.is_dir())?;
     let probe = tempfile::Builder::new().prefix(".PhotoCraftCaseProbe-").tempfile_in(parent).ok()?;
     let name = probe.path().file_name()?.to_str()?;
-    let alternate = parent.join(name.replacen("Ubunye Photo", "photocraft", 1));
+    let alternate = parent.join(name.replacen("CaseProbe", "caseprobe", 1));
     match std::fs::metadata(&alternate) {
         Ok(_) => Some(!same_file(probe.path(), &alternate)),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Some(true),
