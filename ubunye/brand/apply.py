@@ -449,6 +449,8 @@ def overlay_files() -> dict[Path, str]:
     for lang in LANGS + MORE_LANGS:
         rows = "".join(f"\t{new}\t{tr.get(lang, new)}\n" for _olds, new, tr in OVERLAY)
         out[ROOT / "ubunye" / "i18n" / "overlay" / f"{lang}.tsv"] = rows
+    # locales upstream added after our translations were written: our strings in English
+    out[ROOT / "ubunye" / "i18n" / "overlay" / "_default.tsv"] = "".join(f"\t{new}\t{new}\n" for _olds, new, _tr in OVERLAY)
     return out
 
 

@@ -170,8 +170,11 @@ fn product_name() -> Option<String> {
 /// `app` (a craft-i18n PhotoCraft catalog) branded for Ubunye, plus our overlay rows, written under
 /// `OUT_DIR`; the original path if that fails (the catalog is then used as it is).
 fn ubunye_catalog(code: &str, app: &std::path::Path) -> std::path::PathBuf {
-    let overlay = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../ubunye/i18n/overlay").join(format!("{code}.tsv"));
-    println!("cargo::rerun-if-changed={}", overlay.display());
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../ubunye/i18n/overlay");
+    // A locale without rows of its own gets our strings in English (`_default.tsv`).
+    let own = dir.join(format!("{code}.tsv"));
+    let overlay = if own.is_file() { own } else { dir.join("_default.tsv") };
+    println!("cargo::rerun-if-changed={}", dir.display());
     let Some(name) = product_name() else {
         println!("cargo::warning=ubunye/brand.toml has no product name; the catalogs keep \"Ubunye Photo\"");
         return app.to_path_buf();
