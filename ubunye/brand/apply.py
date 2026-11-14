@@ -259,6 +259,7 @@ KEEP_LINE = re.compile(
             r"PhotoCraft (authors|contributors|team)\b",
             r"\.PhotoCraft-face-",  # internal font alias
             r"PhotoCraft Studio CMYK",  # test fixture
+            r"gamma 1\.732, PhotoCraft",  # built-in profile description, now written by a dependency (craft-color); tests read it back
             r"PhotoCraft Coated CMYK",  # baked ICC profile description (crates/cms/profiles), read back by tests
             r"PhotoCraft projects",  # test fixture (folder name)
             r"PhotoCraft é世界",  # test fixture (type layer text)
@@ -440,6 +441,15 @@ def apply_overlay(text: str, lang: str) -> str:
             at = len(lines) - 1 if lines and lines[-1] == "" else len(lines)
             lines.insert(at, want)
     return nl.join(lines)
+
+
+def overlay_files() -> dict[Path, str]:
+    """ubunye/i18n/overlay/<lang>.tsv: our rows, appended to each craft-i18n catalog by build.rs."""
+    out: dict[Path, str] = {}
+    for lang in LANGS + MORE_LANGS:
+        rows = "".join(f"\t{new}\t{tr.get(lang, new)}\n" for _olds, new, tr in OVERLAY)
+        out[ROOT / "ubunye" / "i18n" / "overlay" / f"{lang}.tsv"] = rows
+    return out
 
 
 # ---------------------------------------------------------------------------------------------
@@ -668,6 +678,10 @@ def apply(force_icons: bool) -> int:
         if out != text:
             write(p, out)
             log.append(f"catalog: {rel(p)}")
+    for path, text in overlay_files().items():
+        if read(path) != text:
+            write(path, text)
+            log.append(f"catalog overlay: {rel(path)}")
     for mark in ARTCRAFT_MARKS:
         if mark.exists():
             mark.unlink()
@@ -771,10 +785,9 @@ def check() -> int:
             problems.append(f"{path}: rule not applied: {old[:70]!r}")
         elif w not in text:
             problems.append(f"{path}: rule stale (neither text found): {old[:70]!r}")
-    for p in tsv_files():
-        text = read(p) or ""
-        if apply_overlay(text, p.stem) != text:
-            problems.append(f"{rel(p)}: Ubunye catalog rows missing or out of date")
+    for path, text in overlay_files().items():
+        if read(path) != text:
+            problems.append(f"{rel(path)}: Ubunye catalog rows missing or out of date")
     for p in former_name_scope():
         text = read(p) or ""
         for old in FORMER_NAMES:
