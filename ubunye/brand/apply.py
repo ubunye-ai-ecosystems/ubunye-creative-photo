@@ -425,7 +425,7 @@ def apply_overlay(text: str, lang: str) -> str:
     nl = eol(text)
     lines = text.split(nl)
     for olds, new, tr in OVERLAY:
-        want = f"\t{new}\t{tr[lang]}"
+        want = f"\t{new}\t{tr.get(lang, new)}"
         found = False
         for i, line in enumerate(lines):
             cols = line.split("\t")
