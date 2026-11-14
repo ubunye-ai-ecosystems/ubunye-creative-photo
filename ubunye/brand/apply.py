@@ -193,9 +193,9 @@ EXACT_RULES = [
     # prints --version from build_info and upstream's tests pin that text, so --version is upstream's.
     ("apps/photocraft-cli/src/args.rs", "/// photocraft-cli: headless PhotoCraft\n", f"/// photocraft-cli: headless {NAME} (based on PhotoCraft)\n"),
     # Settings and recovery live in directories of our own, so an installed upstream copy never shares them.
-    ("apps/photocraft/src/app_dirs.rs", '"Library/Application Support/Photocraft"', f'"Library/Application Support/{APP_ID}"'),
-    ("apps/photocraft/src/app_dirs.rs", 'PathBuf::from(a).join("Photocraft")', f'PathBuf::from(a).join("{APP_ID}")'),
-    ("apps/photocraft/src/app_dirs.rs", '.map(|c| c.join("photocraft"))', f'.map(|c| c.join("{APP_ID}"))'),
+    ("crates/automation/src/app_dirs.rs", '"Library/Application Support/Photocraft"', f'"Library/Application Support/{APP_ID}"'),
+    ("crates/automation/src/app_dirs.rs", 'PathBuf::from(a).join("Photocraft")', f'PathBuf::from(a).join("{APP_ID}")'),
+    ("crates/automation/src/app_dirs.rs", '.map(|c| c.join("photocraft"))', f'.map(|c| c.join("{APP_ID}"))'),
     ("apps/photocraft/src/app_dirs.rs", 'PathBuf::from(local).join("Photocraft").join(RECOVERY)', f'PathBuf::from(local).join("{APP_ID}").join(RECOVERY)'),
     ("apps/photocraft/src/app_dirs.rs", 'state.join("photocraft").join(RECOVERY)', f'state.join("{APP_ID}").join(RECOVERY)'),
     ("apps/photocraft/src/app_dirs/tests.rs", '"home/Library/Application Support/Photocraft"', f'"home/Library/Application Support/{APP_ID}"'),
@@ -206,8 +206,8 @@ EXACT_RULES = [
     ("apps/photocraft/src/app_dirs/tests.rs", 'join(".config").join("photocraft")', f'join(".config").join("{APP_ID}")'),
     ("apps/photocraft/src/app_dirs/tests.rs", 'state.join("photocraft").join("Recovery")', f'state.join("{APP_ID}").join("Recovery")'),
     ("apps/photocraft/src/app_dirs/tests.rs", 'join("state").join("photocraft")', f'join("state").join("{APP_ID}")'),
-    ("apps/photocraft/src/app_dirs.rs", '"PhotoCraft.portable"', '"UbunyeCreativePhoto.portable"'),
-    ("apps/photocraft/src/app_dirs.rs", '"PhotoCraftData"', f'"{DATA_DIR}"'),
+    ("crates/automation/src/app_dirs.rs", '"PhotoCraft.portable"', '"UbunyeCreativePhoto.portable"'),
+    ("crates/automation/src/app_dirs.rs", '"PhotoCraftData"', f'"{DATA_DIR}"'),
     ("apps/photocraft/src/services.rs", "`<exe dir>/PhotoCraftData`", f"`<exe dir>/{DATA_DIR}`"),
     # Help menu: upstream's Discord and ArtCraft links (upstream v0.18 dropped the title-bar button).
     ("crates/engine/src/shell_commands.rs", '"Join the ArtCraft Discord…"', '"Join the Community…"'),
@@ -698,7 +698,14 @@ def apply(force_icons: bool) -> int:
 LEAK = re.compile(r"getartcraft|discord\.gg/artcraft|ai\.storyteller|Learning Machines|storytold/photocraft(?!-corpus)|artcraft-(logo|mark)")
 # Files where these leaks are expected: licences, notices, upstream history and documentation.
 # external_svg.rs finds an installed upstream VectorCraft (a separate app) by its own bundle id.
-LEAK_ALLOWED_FILES = CREDIT_FILES | {"apps/photocraft/src/external_svg.rs"}
+# Upstream's "AI agents" switch lives in the ArtCraft Launcher (a separate app we do not ship). The
+# code that reads it stays dormant here (its feature flag is never set), so its wording is left alone.
+ARTCRAFT_LAUNCHER_FILES = {
+    "apps/photocraft/src/agent_link.rs", "crates/automation/src/live.rs",
+    "crates/ui-egui/src/prefs/prefs_ui/agents.rs", "crates/ui-egui/src/prefs/prefs_ui/agents_tests.rs",
+}
+# crates/io/src/pdf/tests.rs checks the spot-plates XMP namespace the PDF dependency writes (a file format id).
+LEAK_ALLOWED_FILES = CREDIT_FILES | {"apps/photocraft/src/external_svg.rs", "crates/io/src/pdf/tests.rs"}
 README_MARKER = "<!-- ubunye: upstream README below -->"
 
 
@@ -730,7 +737,7 @@ def check() -> int:
                 problems.append(f"{r}:{n}: {line.strip()[:120]}")
             if code and PRODUCT.search(line) and not KEEP_LINE.search(line):
                 problems.append(f"{r}:{n}: product name: {line.strip()[:120]}")
-            if code and "ArtCraft" in line and not re.search(r"ArtCraft team|ARTCRAFT_WEBSITE|artcraftWebsite", line):
+            if code and "ArtCraft" in line and r not in ARTCRAFT_LAUNCHER_FILES and not re.search(r"ArtCraft team|ARTCRAFT_WEBSITE|artcraftWebsite", line):
                 problems.append(f"{r}:{n}: ArtCraft: {line.strip()[:120]}")
             if p.suffix == ".tsv" and "\t" in line:
                 cols = line.split("\t")
