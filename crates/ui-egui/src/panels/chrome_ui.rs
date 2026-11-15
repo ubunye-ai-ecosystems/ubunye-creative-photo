@@ -18,6 +18,13 @@ pub struct ChromeState {
     /// Home screen shown over the open documents (Options bar › Home); holds the document count
     /// when it was opened, so opening or creating a document leaves it.
     pub home: Option<usize>,
+    /// View mode for recent files on the Home screen: true = visual thumbnail card grid, false = text list.
+    #[serde(default = "yes")]
+    pub home_recent_grid: bool,
+}
+
+fn yes() -> bool {
+    true
 }
 
 impl ChromeState {
@@ -37,7 +44,7 @@ impl ChromeState {
 
 impl Default for ChromeState {
     fn default() -> Self {
-        Self { status_info: "dimensions".into(), home: None }
+        Self { status_info: "dimensions".into(), home: None, home_recent_grid: true }
     }
 }
 
@@ -466,7 +473,7 @@ mod tests {
         let mut gray = doc();
         gray.mode = photocraft_doc::ColorMode::Grayscale;
         gray.icc_profile = Some(photocraft_engine::color_cmds::working_profile(gray.mode).to_bytes());
-        assert_eq!(profile_name(&gray), "Dot Gain 20%-compatible (gamma 1.732, Ubunye Photo)");
+        assert_eq!(profile_name(&gray), "Dot Gain 20%-compatible (gamma 1.732, PhotoCraft)");
 
         let mut custom = (*photocraft_engine::color_cmds::working_profile(photocraft_doc::ColorMode::Cmyk)).clone();
         custom.description = "PhotoCraft Studio CMYK".into();
