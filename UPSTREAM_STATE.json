@@ -7,12 +7,13 @@
     "branch": "main",
     "license": "MIT OR Apache-2.0"
   },
-  "last_checked_at": "2026-11-14T00:00:00Z",
+  "last_checked_at": "2026-11-21T23:00:00Z",
   "last_integrated": {
-    "sha": "fd105cccc4ea723b38c010d40cd09980c7b59ab0",
-    "date": "2026-11-14T21:39:15+01:00",
+    "sha": "0dfd74dd3366c01eb67ef71f794ea4de29d2c8a5",
+    "date": "2026-11-21T21:56:44+01:00",
     "upstream_version": "0.20.1",
     "upstream_tag": "v0.20.1",
+    "upstream_describe": "v0.20.1-7150-g0dfd74dd3",
     "method": "merge",
     "merged_pr": null,
     "merged_by": null,
@@ -63,6 +64,17 @@
       "ci": "pending",
       "recorded_at": "2026-11-14T00:00:00Z",
       "note": "branch sync/upstream-2026-11-14 (includes the superseded sync/upstream-2026-11-07); upstream CI workflows dropped; brand rules retargeted to crates/automation/src/app_dirs.rs; updater still ours; Ubunye 0.8.1; 10 photocraft-format tests ignored: they fail the same way on unmodified upstream main",
+      "merged_pr": null
+    },
+    {
+      "sha": "0dfd74dd3366c01eb67ef71f794ea4de29d2c8a5",
+      "outcome": "merge",
+      "commits": 8298,
+      "conflicts": 67,
+      "conflict_hunks": null,
+      "ci": "pending",
+      "recorded_at": "2026-11-21T23:00:00Z",
+      "note": "branch sync/upstream-2026-11-21, built on the unmerged sync/upstream-2026-11-14 (PR 19); upstream moved its UI, updater and control server into the craft framework: Share & Collaborate ported (own small widgets, craft control server), updater neutralised again (Check for Updates opens the product page, no automatic check), upstream CI workflows dropped; Ubunye 0.8.1",
       "merged_pr": null
     }
   ]

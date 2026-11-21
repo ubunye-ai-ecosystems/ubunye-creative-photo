@@ -12,9 +12,6 @@ pub(crate) struct Runtime {
     /// The check-result dialog on the dialog host, while one is open.
     #[cfg(not(target_arch = "wasm32"))]
     result_dialog: Option<craft::ui::dialog::DialogId>,
-    /// The last update's outcome opened the result window; it opens once, so closing it with `ui.set` stays closed.
-    #[cfg(not(target_arch = "wasm32"))]
-    outcome_announced: bool,
 }
 
 impl Default for Runtime {
@@ -24,8 +21,6 @@ impl Default for Runtime {
             updater: craft::update::updater::Updater::new(&crate::UPDATE_APP, photocraft_engine::build_info::VERSION),
             #[cfg(not(target_arch = "wasm32"))]
             result_dialog: None,
-            #[cfg(not(target_arch = "wasm32"))]
-            outcome_announced: false,
         }
     }
 }

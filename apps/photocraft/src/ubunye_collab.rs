@@ -427,7 +427,10 @@ pub fn start_control(existing: Option<(u16, String, Option<PathBuf>)>, home: Opt
         let token_file = token_path(home.as_deref(), port)?;
         write_token(&token_file, &token)?;
         install_gates(services);
-        let rx = crate::control_server::start(listener, token, ctx.clone());
+        let host = craft::ui::runtime::windows::WindowHost::of(ctx);
+        let (rx, server) = craft::automation::server::serve(listener, token, host).map_err(|e| format!("could not start the control server: {e}"))?;
+        // The server serves for the rest of the run (dropping its handle would stop it).
+        std::mem::forget(server);
         log::info!("collaboration: control server started on 127.0.0.1:{port} for the collaboration service");
         Ok(Started { link: ControlLink { port, token_file }, rx: Some(rx) })
     })
