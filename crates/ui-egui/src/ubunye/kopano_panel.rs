@@ -158,7 +158,7 @@ fn control_link(app: &mut PhotocraftApp, ctx: &egui::Context) -> Result<ControlL
     };
     let started = start(ctx, &mut app.services)?;
     if let Some(rx) = started.rx {
-        app.control_rx = Some(rx);
+        app.control = Some(craft::automation::ControlChannel::new(rx));
     }
     app.kopano.control = Some(started.link.clone());
     Ok(started.link)
@@ -432,7 +432,7 @@ pub fn paint_icon(p: &egui::Painter, r: Rect, color: Color32) {
 pub fn top_bar_button(app: &mut PhotocraftApp, ui: &mut egui::Ui, size: f32) {
     let (rect, resp) = ui.allocate_exact_size(vec2(size, size), Sense::click());
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, tl!("Share & Collaborate")));
-    let tint = crate::icons::button_chrome(ui, rect, app.kopano.open, resp.hovered());
+    let tint = super::widgets::button_chrome(ui, rect, app.kopano.open, resp.hovered());
     paint_icon(ui.painter(), Rect::from_center_size(rect.center(), vec2(size * 0.62, size * 0.62)), tint);
     app.kopano.widgets.insert("icon:collaborate".into(), rect_of(rect));
     if resp.on_hover_text(tl!("Share & Collaborate")).clicked() {
@@ -466,14 +466,14 @@ fn dim(ui: &mut egui::Ui, text: impl Into<String>) {
 
 /// A button of the window, its rect kept under `id` in `kopano.status` `widgets`.
 fn button(app: &mut PhotocraftApp, ui: &mut egui::Ui, id: &str, label: &str, selected: bool) -> bool {
-    let r = if selected { crate::widgets::pill_tab(ui, label, true) } else { crate::widgets::secondary_button(ui, tr(label), 0.0) };
+    let r = if selected { super::widgets::pill_tab(ui, tr(label), true) } else { super::widgets::secondary_button(ui, tr(label), 0.0) };
     app.kopano.widgets.insert(format!("button:{id}"), rect_of(r.rect));
     r.clicked()
 }
 
 /// A choice between two (the way to work): the chosen one looks pressed.
 fn choice(app: &mut PhotocraftApp, ui: &mut egui::Ui, id: &str, label: &str, selected: bool) -> bool {
-    let r = crate::widgets::pill_tab(ui, tr(label), selected);
+    let r = super::widgets::pill_tab(ui, tr(label), selected);
     r.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, selected, tr(label)));
     app.kopano.widgets.insert(format!("button:{id}"), rect_of(r.rect));
     r.clicked()
@@ -757,14 +757,14 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
             ui.horizontal(|ui| {
                 ui.label(RichText::new(tl!("Share & Collaborate")).color(t.text).size(12.5).strong());
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let r = crate::icons::button(ui, "x", 20.0, false, "Close");
+                    let r = super::widgets::close_button(ui, 20.0, tl!("Close"));
                     app.kopano.widgets.insert("button:kopano-close".into(), rect_of(r.rect));
                     if r.clicked() {
                         close = true;
                     }
                 });
             });
-            crate::widgets::hairline(ui);
+            super::widgets::hairline(ui);
             body(app, ui, &state);
             let h = ui.min_rect().height();
             if (h - app.kopano.content_h).abs() > 0.5 {
@@ -925,7 +925,7 @@ fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, state: &State) {
     }
 
     ui.add_space(4.0);
-    crate::widgets::hairline(ui);
+    super::widgets::hairline(ui);
     heading(ui, "Share this document");
     if app.session.active().is_none() {
         dim(ui, tr("Open the document you want to share first."));
@@ -949,7 +949,7 @@ fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, state: &State) {
             "Your teammates see their own edits at once. Your document changes only when you approve."
         }),
     );
-    let r = crate::widgets::primary_button(ui, tr("Share"), 90.0);
+    let r = super::widgets::primary_button(ui, tr("Share"), 90.0);
     app.kopano.widgets.insert("button:kopano-share".into(), rect_of(r.rect));
     if r.clicked() {
         press(app, &ctx, "kopano.share");
