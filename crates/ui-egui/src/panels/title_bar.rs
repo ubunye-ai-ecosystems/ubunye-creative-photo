@@ -28,7 +28,6 @@ pub fn title_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
         // Ubunye: Share & Collaborate, always shown (the rightmost control).
         |ui, _| crate::ubunye::kopano_panel::top_bar_button(&mut cell.borrow_mut(), ui, 28.0),
     );
-    drop(cell);
     // The bar never closes the window: File › Exit asks about unsaved work first.
     if out.close_requested {
         let _ = crate::menus::invoke(app, ui.ctx(), "file.exit", serde_json::json!({}));
