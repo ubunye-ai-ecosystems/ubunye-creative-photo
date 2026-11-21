@@ -125,19 +125,23 @@ const KEEP_NAME: [&str; 11] = [
     "deflate-compressed photocraft",
 ];
 
+/// The upstream product name, written in two pieces so the brand script (which rewrites that word
+/// in string literals) leaves it alone.
+const UPSTREAM_NAME: &str = concat!("Photo", "Craft");
+
 /// `text` with the product name "PhotoCraft" (a whole word, not after a dot) replaced by `name`.
 fn rename_product(text: &str, name: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut rest = text;
     let mut prev: Option<char> = None;
-    while let Some(at) = rest.find("Ubunye Photo") {
+    while let Some(at) = rest.find(UPSTREAM_NAME) {
         let (before, after) = rest.split_at(at);
-        let after = after.get("Ubunye Photo".len()..).unwrap_or_default();
+        let after = after.get(UPSTREAM_NAME.len()..).unwrap_or_default();
         let before_char = before.chars().last().or(prev);
         let word = |c: char| c.is_ascii_alphanumeric() || c == '_';
         let whole = !before_char.is_some_and(|c| word(c) || c == '.') && !after.chars().next().is_some_and(word);
         out.push_str(before);
-        out.push_str(if whole { name } else { "Ubunye Photo" });
+        out.push_str(if whole { name } else { UPSTREAM_NAME });
         prev = Some('t');
         rest = after;
     }
