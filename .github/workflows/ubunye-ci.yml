@@ -38,7 +38,7 @@ jobs:
         shell: bash
         run: |
           git clone --quiet --no-checkout https://github.com/storytold/craft-fonts "$RUNNER_TEMP/craft-fonts"
-          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach b076417b5880bd4154bd22f00695b1d28c6bea83
+          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach cc9269cd8d8258785dac603fba3122e5d2556795
           echo "CRAFT_FONTS_DIR=$RUNNER_TEMP/craft-fonts" >>"$GITHUB_ENV"
           echo "CRAFT_FONTS_REQUIRED=1" >>"$GITHUB_ENV"
       # Interface translations live in storytold/craft-i18n, embedded at build time (crates/ui-egui/build.rs).
@@ -102,7 +102,7 @@ jobs:
         shell: bash
         run: |
           git clone --quiet --no-checkout https://github.com/storytold/craft-fonts "$RUNNER_TEMP/craft-fonts"
-          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach b076417b5880bd4154bd22f00695b1d28c6bea83
+          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach cc9269cd8d8258785dac603fba3122e5d2556795
           echo "CRAFT_FONTS_DIR=$RUNNER_TEMP/craft-fonts" >>"$GITHUB_ENV"
           echo "CRAFT_FONTS_REQUIRED=1" >>"$GITHUB_ENV"
       # Interface translations live in storytold/craft-i18n, embedded at build time (crates/ui-egui/build.rs).

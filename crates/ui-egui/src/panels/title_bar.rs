@@ -12,18 +12,23 @@ use super::{PhotocraftApp, brand};
 /// window's title bar and the caption buttons take its ends; with the system's frame it shows the content and no title.
 pub fn title_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let title = title_text(app);
+    // Both slots need the app; the bar draws them one after the other (Ubunye: the second is ours).
+    let cell = std::cell::RefCell::new(&mut *app);
     let out = TitleBar::new().show_titled(
         ui,
         Title::new(title),
         |ui, _| {
             brand::mark().show(ui);
             // With the macOS menu bar the menus are at the top of the screen instead.
+            let mut app = cell.borrow_mut();
             if app.services.native_menu.is_none() {
-                crate::menus::menu_bar(app, ui);
+                crate::menus::menu_bar(&mut app, ui);
             }
         },
-        |_, _| {},
+        // Ubunye: Share & Collaborate, always shown (the rightmost control).
+        |ui, _| crate::ubunye::kopano_panel::top_bar_button(&mut cell.borrow_mut(), ui, 28.0),
     );
+    drop(cell);
     // The bar never closes the window: File › Exit asks about unsaved work first.
     if out.close_requested {
         let _ = crate::menus::invoke(app, ui.ctx(), "file.exit", serde_json::json!({}));
