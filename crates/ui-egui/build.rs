@@ -32,7 +32,6 @@ fn main() {
     if let Err(e) = std::fs::write(&out, craft_i18n()) {
         println!("cargo::error=writing {}: {e}", out.display());
     }
-    deflate_egui_fonts();
 }
 
 /// The catalog this app reads in each locale: `locales/<locale>/photocraft.tsv`.
@@ -105,122 +104,6 @@ fn locales(dir: &std::path::Path) -> Result<Vec<Locale>, String> {
     }
     out.sort();
     Ok(out)
-}
-
-// Modified by Ubunye AI Ecosystems, 2026: the craft-i18n catalogs say "PhotoCraft" and know none of
-// our own strings, so each locale's PhotoCraft catalog is branded and given Ubunye's overlay rows
-// (ubunye/i18n/overlay/<code>.tsv, written by ubunye/brand/apply.py) before it is embedded.
-
-/// Phrases (lower case) whose rows keep "PhotoCraft": credits and fixtures (apply.py's KEEP_LINE).
-const KEEP_NAME: [&str; 11] = [
-    "based on photocraft",
-    "upstream photocraft",
-    "photocraft authors",
-    "photocraft contributors",
-    "photocraft team",
-    ".photocraft-face-",
-    "photocraft studio cmyk",
-    "photocraft coated cmyk",
-    "photocraft projects",
-    "photocraft transform preview",
-    "deflate-compressed photocraft",
-];
-
-/// `text` with the product name "PhotoCraft" (a whole word, not after a dot) replaced by `name`.
-fn rename_product(text: &str, name: &str) -> String {
-    let mut out = String::with_capacity(text.len());
-    let mut rest = text;
-    let mut prev: Option<char> = None;
-    while let Some(at) = rest.find("Ubunye Photo") {
-        let (before, after) = rest.split_at(at);
-        let after = after.get("Ubunye Photo".len()..).unwrap_or_default();
-        let before_char = before.chars().last().or(prev);
-        let word = |c: char| c.is_ascii_alphanumeric() || c == '_';
-        let whole = !before_char.is_some_and(|c| word(c) || c == '.') && !after.chars().next().is_some_and(word);
-        out.push_str(before);
-        out.push_str(if whole { name } else { "Ubunye Photo" });
-        prev = Some('t');
-        rest = after;
-    }
-    out.push_str(rest);
-    out
-}
-
-/// One catalog row (`<tab>source<tab>translation`) with the product name replaced, unless it is a credit.
-fn brand_row(line: &str, name: &str) -> String {
-    let cols: Vec<&str> = line.split('\t').collect();
-    let keep = cols.get(1).is_some_and(|source| {
-        let lower = source.to_lowercase();
-        KEEP_NAME.iter().any(|k| lower.contains(k))
-    });
-    if line.starts_with('#') || cols.len() != 3 || keep {
-        return line.to_string();
-    }
-    cols.iter().map(|c| rename_product(c, name)).collect::<Vec<_>>().join("\t")
-}
-
-/// The product name from ubunye/brand.toml.
-fn product_name() -> Option<String> {
-    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../ubunye/brand.toml");
-    println!("cargo::rerun-if-changed={}", path.display());
-    let table = std::fs::read_to_string(&path).ok()?.parse::<toml::Table>().ok()?;
-    table.get("product")?.get("name")?.as_str().map(str::to_string)
-}
-
-/// `app` (a craft-i18n PhotoCraft catalog) branded for Ubunye, plus our overlay rows, written under
-/// `OUT_DIR`; the original path if that fails (the catalog is then used as it is).
-fn ubunye_catalog(code: &str, app: &std::path::Path) -> std::path::PathBuf {
-    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../ubunye/i18n/overlay");
-    // A locale without rows of its own gets our strings in English (`_default.tsv`).
-    let own = dir.join(format!("{code}.tsv"));
-    let overlay = if own.is_file() { own } else { dir.join("_default.tsv") };
-    println!("cargo::rerun-if-changed={}", dir.display());
-    let Some(name) = product_name() else {
-        println!("cargo::warning=ubunye/brand.toml has no product name; the catalogs keep \"Ubunye Photo\"");
-        return app.to_path_buf();
-    };
-    let Ok(text) = std::fs::read_to_string(app) else { return app.to_path_buf() };
-    let mut out: String = text.lines().map(|l| brand_row(l, &name)).collect::<Vec<_>>().join("\n");
-    out.push('\n');
-    out.push_str(&std::fs::read_to_string(&overlay).unwrap_or_default());
-    let dir = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap_or_default()).join("i18n").join(code);
-    let target = dir.join(APP_CATALOG);
-    match std::fs::create_dir_all(&dir).and_then(|()| std::fs::write(&target, out)) {
-        Ok(()) => target,
-        Err(e) => {
-            println!("cargo::warning=writing {}: {e}", target.display());
-            app.to_path_buf()
-        }
-    }
-}
-
-/// Deflate egui's default fonts (the `epaint_default_fonts` crate) into `OUT_DIR/egui_fonts/` for
-/// `egui_fonts.rs`. The app builds egui without `default_fonts`, which would embed the same 1.4 MB
-/// uncompressed; deflated they take 0.78 MB (the web build's 24 MiB size gate).
-fn deflate_egui_fonts() {
-    use std::io::Write as _;
-    let out = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap_or_default()).join("egui_fonts");
-    // `egui-icons` is unconditional in 0.37 (a handful of private-use symbols, 3.5 kB); the two
-    // emoji fonts come through `monochrome_emoji_fonts` in Cargo.toml.
-    let fonts = [
-        ("Hack-Regular", epaint_default_fonts::HACK_REGULAR),
-        ("egui-icons", epaint_default_fonts::EGUI_ICONS),
-        ("NotoEmoji-Regular", epaint_default_fonts::NOTO_EMOJI_REGULAR),
-        ("Ubuntu-Light", epaint_default_fonts::UBUNTU_LIGHT),
-        ("emoji-icon-font", epaint_default_fonts::EMOJI_ICON),
-    ];
-    let result = (|| -> std::io::Result<()> {
-        std::fs::create_dir_all(&out)?;
-        for (name, bytes) in fonts {
-            let mut z = flate2::write::DeflateEncoder::new(Vec::new(), flate2::Compression::best());
-            z.write_all(bytes)?;
-            std::fs::write(out.join(format!("{name}.ttf.deflate")), z.finish()?)?;
-        }
-        Ok(())
-    })();
-    if let Err(e) = result {
-        println!("cargo::error=deflating egui's default fonts into {}: {e}", out.display());
-    }
 }
 
 fn read<T>(path: &std::path::Path, fallback: &str, parse: impl Fn(&str) -> Result<T, String>) -> Option<T> {

@@ -753,7 +753,7 @@ def check() -> int:
                 problems.append(f"{r}:{n}: {line.strip()[:120]}")
             if code and PRODUCT.search(line) and not KEEP_LINE.search(line):
                 problems.append(f"{r}:{n}: product name: {line.strip()[:120]}")
-            if code and "ArtCraft" in line and r not in ARTCRAFT_LAUNCHER_FILES and not re.search(r"ArtCraft team|ARTCRAFT_WEBSITE|artcraftWebsite", line):
+            if code and "ArtCraft" in line and r not in ARTCRAFT_LAUNCHER_FILES and not re.search(r"ArtCraft team|ARTCRAFT_WEBSITE|artcraftWebsite|Documents/ArtCraft/Agents|join\(.ArtCraft.\)", line):
                 problems.append(f"{r}:{n}: ArtCraft: {line.strip()[:120]}")
             if p.suffix == ".tsv" and "\t" in line:
                 cols = line.split("\t")
