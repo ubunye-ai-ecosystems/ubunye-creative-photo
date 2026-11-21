@@ -6,9 +6,9 @@
 /// ThabangVision collaboration: the client of the service on this computer and its window.
 pub mod kopano;
 pub mod kopano_panel;
-pub mod widgets;
 #[cfg(test)]
 mod tests_kopano;
+pub mod widgets;
 
 /// The product name shown in the UI, installers and package metadata.
 pub const NAME: &str = "Ubunye Photo";
