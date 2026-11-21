@@ -519,7 +519,7 @@ fn review_lines_read_in_plain_words() {
 
 // ---- the window in the app, driven like a person through the control channel ----------------
 
-type H = egui_kittest::Harness<'static, PhotocraftApp>;
+type H = egui_kittest::Harness<'static, Box<PhotocraftApp>>;
 
 fn harness(config: Config, with_doc: bool) -> H {
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1400.0, 1700.0)).with_max_steps(64).build_eframe(move |cc| {
@@ -538,15 +538,14 @@ fn harness(config: Config, with_doc: bool) -> H {
 /// One frame, with the window's queued pointer and key input fed in (eframe's raw input hook,
 /// which the test harness does not call).
 fn frame(h: &mut H) {
-    let events = h.state_mut().take_synthetic_step();
-    h.input_mut().events.extend(events);
+    // The app's own frame feeds the queued synthetic input (craft-automation).
     h.step();
 }
 
 /// One control request, answered after the frames it needs (pointer input waits for its frame).
 fn request(h: &mut H, method: &str, params: Value) -> Value {
     let (tx, rx) = std::sync::mpsc::channel();
-    h.state_mut().control_rx = Some(rx);
+    h.state_mut().control = Some(craft::automation::ControlChannel::new(rx));
     let (req, reply) = crate::control::ControlRequest::new(method, params);
     tx.send(req).unwrap();
     let t0 = Instant::now();
@@ -920,7 +919,7 @@ fn the_owner_reviews_views_approves_and_declines_from_the_window() {
     h.state_mut().kopano.start_control = Some(start_control_counting(Arc::default()));
     // the service's layer key for this document's only layer, as an update writes it
     let layer = h.state().session.active().unwrap().doc.layers[0].id.0;
-    std::sync::Arc::make_mut(&mut h.state_mut().session.active_mut().unwrap().doc)
+    std::sync::Arc::make_mut(h.state_mut().session.active_mut().unwrap().doc_mut())
         .metadata
         .text
         .push((LAYER_KEYS.into(), json!({layer.to_string(): UID}).to_string()));
@@ -1048,7 +1047,7 @@ fn clash_picks_belong_to_one_member() {
     let mut h = harness(config, true);
     h.state_mut().kopano.start_control = Some(start_control_counting(Arc::default()));
     let layer = h.state().session.active().unwrap().doc.layers[0].id.0;
-    std::sync::Arc::make_mut(&mut h.state_mut().session.active_mut().unwrap().doc)
+    std::sync::Arc::make_mut(h.state_mut().session.active_mut().unwrap().doc_mut())
         .metadata
         .text
         .push((LAYER_KEYS.into(), json!({layer.to_string(): UID}).to_string()));
