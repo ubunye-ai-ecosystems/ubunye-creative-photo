@@ -62,6 +62,8 @@ pub fn is_enabled(app: &PhotocraftApp, id: &str) -> bool {
     }
     match id {
         "window.panel.activate" | "window.panel.layout" | "ui.dock" => true,
+        // Ubunye: Share & Collaborate opens with or without a document.
+        "kopano.panel" => true,
         "window.panel.group"
         | "window.panel.move"
         | "window.panel.float"
