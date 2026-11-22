@@ -7,6 +7,7 @@ use photocraft_raster::spill;
 use std::io::{Read, Seek, SeekFrom, Write};
 
 #[test]
+#[ignore = "Ubunye: needs a process of its own (it corrupts the process-wide scratch store; upstream runs it under nextest). Under plain `cargo test`, which ubunye-ci upstream-gate uses, the same kind of test fails on unmodified upstream main too (checked 2026-11-22 with automation scratch_save)"]
 fn failed_effect_build_is_not_reused_after_original_pixels_recover() {
     photocraft_raster::spill::use_test_volume_space();
     let dir = std::env::temp_dir().join(format!("photocraft-compose-scratch-retry-{}", std::process::id()));
