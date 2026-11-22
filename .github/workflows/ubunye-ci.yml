@@ -14,6 +14,9 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
+  # Upstream moved to the craft framework: a debug build with full debug info no longer fits the macOS
+  # runner's disk (scratch-disk "low on free space" test failures, a two-hour job). Line tables are enough here.
+  CARGO_PROFILE_DEV_DEBUG: "line-tables-only"
 
 jobs:
   build-test:
