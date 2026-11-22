@@ -137,6 +137,8 @@ struct ShownFacts<'a> {
     ticks: Arc<Vec<bool>>,
     recent_files: &'a Tracked<Vec<String>>,
     workspaces: &'a Tracked<crate::workspace_ui::Workspaces>,
+    /// Ubunye: the Share & Collaborate window is open (its Window menu item is ticked).
+    kopano_open: bool,
 }
 
 impl<'a> MenuFacts<'a> {
@@ -169,6 +171,7 @@ impl<'a> MenuFacts<'a> {
                 ticks: window_ticks(app),
                 recent_files: &ui.recent_files,
                 workspaces: &app.workspaces,
+                kopano_open: app.kopano.open,
             },
         }
     }
