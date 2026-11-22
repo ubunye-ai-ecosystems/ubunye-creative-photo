@@ -124,6 +124,8 @@ echo "==> assembling $APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 # Executable and icon carry the display name (CFBundleExecutable / CFBundleIconFile).
 cp "$WORK/bin/photocraft" "$APP/Contents/MacOS/PhotoCraft"
+# The CLI too, beside the app: Preferences › AI Integrations points MCP clients at it
+# (`photocraft-cli mcp`), and it starts the app when an agent needs it.
 cp "$WORK/bin/photocraft-cli" "$APP/Contents/MacOS/photocraft-cli"
 # Ubunye: programs shipped beside Photo (kopanod, ThabangVision collaboration), set by
 # ubunye/packaging/macos/collab-package.sh; none otherwise. Signed below, before the app.

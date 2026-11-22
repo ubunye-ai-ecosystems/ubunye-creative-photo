@@ -3,35 +3,36 @@ use super::{Result, Session, Value, json};
 // ------------------------------------------------------------------ Purge
 
 fn history_bytes(s: &Session, all: bool) -> usize {
-    let docs: Vec<&crate::DocState> = if all { s.documents().iter().collect() } else { s.active().into_iter().collect() };
+    let docs: Vec<&crate::DocState> = if all { s.documents().iter().map(|st| &**st).collect() } else { s.active().into_iter().collect() };
     // Purge keeps the snapshots, so the tiles they share with the states aren't freed.
     docs.iter()
         .map(|d| {
-            let snaps: Vec<&photocraft_doc::Document> = d.snapshots.iter().map(|s| &*s.doc).collect();
+            let snaps: Vec<&photocraft_doc::Document> = d.snapshots().iter().map(|s| &*s.doc).collect();
             d.history.unique_bytes_besides(&d.doc, &snaps)
         })
         .sum()
 }
 
 fn clip_bytes(s: &Session) -> usize {
-    s.clipboard.as_ref().map_or(0, |c| c.surface.tiles().map(|(_, t)| t.bytes().len()).sum())
+    s.clipboard.as_ref().map_or(0, |c| c.surface.tiles().map(|(_, t)| t.len()).sum())
 }
 
+/// Apply the requested irreversible purge and record its boundary so action finalization cannot resurrect undo states.
 pub(super) fn purge(s: &mut Session, what: &str) -> Result<Value> {
     let mut freed = 0usize;
     let mut items: Vec<&str> = Vec::new();
     if matches!(what, "undo" | "all") && s.active().is_some_and(|d| d.history.can_undo()) {
         let before = history_bytes(s, false);
         if let Some(st) = s.active_mut() {
-            st.history.purge_last();
+            st.history.purge_undo();
         }
         freed += before.saturating_sub(history_bytes(s, false));
         items.push("undo");
     }
     if matches!(what, "clipboard" | "all") && (s.clipboard.is_some() || s.style_clipboard.is_some()) {
         freed += clip_bytes(s);
-        s.clipboard = None;
-        s.style_clipboard = None;
+        *s.clipboard = None;
+        *s.style_clipboard = None;
         items.push("clipboard");
     }
     if matches!(what, "histories" | "all") {
@@ -66,10 +67,20 @@ pub(super) fn purge(s: &mut Session, what: &str) -> Result<Value> {
             freed = freed.saturating_add(sources);
             items.push("smart object source cache");
         }
+        let mips = photocraft_paint::purge_mip_cache();
+        if mips > 0 {
+            freed = freed.saturating_add(mips);
+            items.push("brush mip cache");
+        }
         let strokes = photocraft_compose::shape_split::purge_cache();
         if strokes > 0 {
             freed = freed.saturating_add(strokes);
             items.push("shape stroke cache");
+        }
+        let luts = photocraft_compose::lut_rows::purge_cache();
+        if luts > 0 {
+            freed = freed.saturating_add(luts);
+            items.push("adjustment table cache");
         }
     }
     s.edit_state.fade = None;
@@ -95,6 +106,8 @@ pub(super) fn can_purge_all(s: &Session) -> std::result::Result<(), String> {
             || photocraft_compose::masks::cache_bytes() > 0
             || crate::smart_cmds::stack_cache_bytes() > 0
             || crate::smart_cmds::source_cache_bytes() > 0
+            || photocraft_paint::mip_cache_bytes() > 0
+            || photocraft_compose::lut_rows::cache_bytes() > 0
         {
             Ok(())
         } else {

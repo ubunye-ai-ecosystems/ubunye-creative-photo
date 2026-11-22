@@ -93,7 +93,7 @@ fn target<'a>(s: &'a Session, p: &Value) -> Result<&'a crate::DocState> {
         None | Some(Value::Null) => s.active().ok_or(EngineError::NoDocument),
         Some(v) => {
             let id = v.as_u64().ok_or_else(|| bad("kopano", "`doc` must be a document id"))?;
-            s.documents().iter().find(|d| d.doc.id.0 == id).ok_or_else(|| EngineError::Other("the shared document is closed".into()))
+            s.documents().iter().find(|d| d.doc.id.0 == id).map(|d| &**d).ok_or_else(|| EngineError::Other("the shared document is closed".into()))
         }
     }
 }

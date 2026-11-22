@@ -55,9 +55,18 @@ jobs:
         shell: bash
         run: |
           git clone --quiet --no-checkout https://github.com/storytold/craft-fonts "$RUNNER_TEMP/craft-fonts"
-          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach b076417b5880bd4154bd22f00695b1d28c6bea83
+          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach cc9269cd8d8258785dac603fba3122e5d2556795
           echo "CRAFT_FONTS_DIR=$RUNNER_TEMP/craft-fonts" >>"$GITHUB_ENV"
           echo "CRAFT_FONTS_REQUIRED=1" >>"$GITHUB_ENV"
+      # Interface translations live in storytold/craft-i18n, embedded at build time (crates/ui-egui/build.rs).
+      # Without them the app is English only, so REQUIRED makes the build fail instead.
+      - name: Translations (craft-i18n)
+        shell: bash
+        run: |
+          git clone --quiet --no-checkout https://github.com/storytold/craft-i18n "$RUNNER_TEMP/craft-i18n"
+          git -C "$RUNNER_TEMP/craft-i18n" checkout --quiet --detach "$(tr -d '[:space:]' < craft-i18n.rev)"
+          echo "CRAFT_I18N_DIR=$RUNNER_TEMP/craft-i18n" >>"$GITHUB_ENV"
+          echo "CRAFT_I18N_REQUIRED=1" >>"$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           repository: ubunye-ai-ecosystems/ubunye-creative-studio-tools
@@ -138,9 +147,18 @@ jobs:
         shell: bash
         run: |
           git clone --quiet --no-checkout https://github.com/storytold/craft-fonts "$RUNNER_TEMP/craft-fonts"
-          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach b076417b5880bd4154bd22f00695b1d28c6bea83
+          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach cc9269cd8d8258785dac603fba3122e5d2556795
           echo "CRAFT_FONTS_DIR=$RUNNER_TEMP/craft-fonts" >>"$GITHUB_ENV"
           echo "CRAFT_FONTS_REQUIRED=1" >>"$GITHUB_ENV"
+      # Interface translations live in storytold/craft-i18n, embedded at build time (crates/ui-egui/build.rs).
+      # Without them the app is English only, so REQUIRED makes the build fail instead.
+      - name: Translations (craft-i18n)
+        shell: bash
+        run: |
+          git clone --quiet --no-checkout https://github.com/storytold/craft-i18n "$RUNNER_TEMP/craft-i18n"
+          git -C "$RUNNER_TEMP/craft-i18n" checkout --quiet --detach "$(tr -d '[:space:]' < craft-i18n.rev)"
+          echo "CRAFT_I18N_DIR=$RUNNER_TEMP/craft-i18n" >>"$GITHUB_ENV"
+          echo "CRAFT_I18N_REQUIRED=1" >>"$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           repository: ubunye-ai-ecosystems/ubunye-creative-studio-tools
@@ -197,9 +215,18 @@ jobs:
         shell: bash
         run: |
           git clone --quiet --no-checkout https://github.com/storytold/craft-fonts "$RUNNER_TEMP/craft-fonts"
-          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach b076417b5880bd4154bd22f00695b1d28c6bea83
+          git -C "$RUNNER_TEMP/craft-fonts" checkout --quiet --detach cc9269cd8d8258785dac603fba3122e5d2556795
           echo "CRAFT_FONTS_DIR=$RUNNER_TEMP/craft-fonts" >>"$GITHUB_ENV"
           echo "CRAFT_FONTS_REQUIRED=1" >>"$GITHUB_ENV"
+      # Interface translations live in storytold/craft-i18n, embedded at build time (crates/ui-egui/build.rs).
+      # Without them the app is English only, so REQUIRED makes the build fail instead.
+      - name: Translations (craft-i18n)
+        shell: bash
+        run: |
+          git clone --quiet --no-checkout https://github.com/storytold/craft-i18n "$RUNNER_TEMP/craft-i18n"
+          git -C "$RUNNER_TEMP/craft-i18n" checkout --quiet --detach "$(tr -d '[:space:]' < craft-i18n.rev)"
+          echo "CRAFT_I18N_DIR=$RUNNER_TEMP/craft-i18n" >>"$GITHUB_ENV"
+          echo "CRAFT_I18N_REQUIRED=1" >>"$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           repository: ubunye-ai-ecosystems/ubunye-creative-studio-tools

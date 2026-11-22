@@ -8,6 +8,7 @@ pub mod kopano;
 pub mod kopano_panel;
 #[cfg(test)]
 mod tests_kopano;
+pub mod widgets;
 
 /// The product name shown in the UI, installers and package metadata.
 pub const NAME: &str = "Ubunye Photo";
@@ -59,7 +60,7 @@ mod tests {
     }
 
     /// No update check may reach upstream: craft-update would offer (and install) PhotoCraft
-    /// builds over Ubunye Photo. The app has no check service; Help › Check for Updates opens
+    /// builds over Ubunye Photo. The app runs no check; Help › Check for Updates opens
     /// the download page instead.
     #[cfg(not(target_arch = "wasm32"))]
     #[test]
@@ -80,7 +81,8 @@ mod tests {
             ..Default::default()
         };
         let mut app = crate::PhotocraftApp::new(photocraft_engine::Session::new(), services);
-        assert!(app.session.updates.check.is_none(), "no release check is wired up");
+        // no automatic check: the tick leaves the updater idle
+        crate::updates_ui::tick(&mut app);
         let ctx = egui::Context::default();
         assert!(crate::menus::is_enabled(&app, "help.checkForUpdates"));
         crate::menus::invoke(&mut app, &ctx, "help.checkForUpdates", serde_json::json!({})).unwrap();
