@@ -114,6 +114,15 @@ jobs:
           git -C "$RUNNER_TEMP/craft-i18n" checkout --quiet --detach "$(tr -d '[:space:]' < craft-i18n.rev)"
           echo "CRAFT_I18N_DIR=$RUNNER_TEMP/craft-i18n" >>"$GITHUB_ENV"
           echo "CRAFT_I18N_REQUIRED=1" >>"$GITHUB_ENV"
+      # xtask ci runs the tests under nextest when it is installed (one process per test, as upstream's CI
+      # does); without it they share one process and the process-wide scratch, cache and GPU tests fail.
+      - name: cargo-nextest 0.9.150 (the version .config/nextest.toml requires)
+        shell: bash
+        run: |
+          bin="${CARGO_HOME:-$HOME/.cargo}/bin"
+          mkdir -p "$bin" && echo "$bin" >>"$GITHUB_PATH"
+          curl -LsSf https://get.nexte.st/0.9.150/linux | tar zxf - -C "$bin"
+          "$bin/cargo-nextest" --version
       - run: cargo xtask ci
 
   brand-leak:
