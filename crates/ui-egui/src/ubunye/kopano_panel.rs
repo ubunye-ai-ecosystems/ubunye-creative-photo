@@ -34,7 +34,11 @@ use serde_json::{Value, json};
 
 use super::kopano::{self, Client, Config, Job, State};
 use crate::PhotocraftApp;
-use crate::control::ControlRequest;
+/// A request on the control channel; the browser build has no control channel.
+#[cfg(not(target_arch = "wasm32"))]
+type ControlRequest = crate::control::ControlRequest;
+#[cfg(target_arch = "wasm32")]
+type ControlRequest = std::convert::Infallible;
 use crate::theme::Tokens;
 
 /// The control port the service reaches this window on, and the file holding its token.
@@ -157,6 +161,7 @@ fn control_link(app: &mut PhotocraftApp, ctx: &egui::Context) -> Result<ControlL
         return Err("This window can't be shared right now. Restart Photo and try again.".to_string());
     };
     let started = start(ctx, &mut app.services)?;
+    #[cfg(not(target_arch = "wasm32"))]
     if let Some(rx) = started.rx {
         app.control = Some(craft::automation::ControlChannel::new(rx));
     }
