@@ -44,6 +44,8 @@ pub const HIDDEN_UNTIL_IMPLEMENTED: &[&str] = &[
     "plugIns.allowScriptsToConnect",
     "type.textEngine",
     "enhancedControls.scrubbySliderAcceleration",
+    // Ubunye: no automatic update check runs (Help › Check for Updates opens the download page).
+    "general.automaticallyCheckUpdates",
 ];
 
 /// Is the preference at `path` (`"section.key"`) hidden from the Preferences dialog?
