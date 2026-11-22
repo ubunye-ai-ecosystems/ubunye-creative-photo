@@ -33,6 +33,7 @@ impl BandRenderer for QueuedDiagnosticsRenderer {
 }
 
 #[test]
+#[ignore = "Ubunye: needs a process of its own (the scratch store is process-wide; upstream runs it under nextest). Under plain `cargo test`, which ubunye-ci's upstream-gate uses, it fails on unmodified upstream main (0dfd74dd3) too, checked 2026-11-22"]
 fn native_save_refuses_previews_rendered_from_unreadable_scratch() {
     photocraft_raster::spill::use_test_volume_space();
     let dir = std::env::temp_dir().join(format!("photocraft-automation-scratch-save-{}", std::process::id()));
