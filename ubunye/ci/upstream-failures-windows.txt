@@ -57,3 +57,6 @@ photocraft-ui-egui::it adjust_preview_gpu::proxy_preview_composites_on_the_gpu
 photocraft-ui-egui::it full_res_preview::adjustment_dialog_zoomed_out_skips_the_reduced_copy_when_low_res_is_off
 photocraft-ui-egui::it full_res_preview::adjustment_layer_drag_previews_at_full_resolution_when_low_res_is_off
 photocraft-ui-egui::it layout_perf::layout_document_composites_on_the_gpu_like_the_cpu
+# Added 2026-11-22 (sync of upstream 0dfd74dd3): same class as the GPU tests above (a readback on the windows-2022
+# runner's software adapter: "Buffer is not mapped"). Not baselined on its own against unmodified upstream.
+photocraft-ui-egui::it layout_perf::gpu_tests::layout_document_composites_on_the_gpu_like_the_cpu
